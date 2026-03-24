@@ -7,7 +7,8 @@ obj/
 TestResults/
 artifacts/
 scratch/
+brainwave/
 *.log
-*jotmic.settings.json
+*whisper.settings.json
 *stt.settings.json
-src/Stt.App/stt.settings.json
+src/Stt.App/*.settings.json

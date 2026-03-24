@@ -34,7 +34,7 @@ public sealed class SelectableRecordingWorkflow : IRecordingWorkflow, IRecording
             ? _streamingWorkflow
             : _nonStreamingWorkflow;
 
-        JotMicTrace.Log(
+        WhisperTrace.Log(
             "SelectableWorkflow",
             streamingEnabled
                 ? "Streaming mode requested for this session."

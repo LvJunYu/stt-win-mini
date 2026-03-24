@@ -104,7 +104,7 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
                 "OpenAI did not return a realtime transcription client secret.");
         }
 
-        JotMicTrace.Log(
+        WhisperTrace.Log(
             "RealtimeClient",
             $"Created realtime transcription session via REST. Rate={RealtimePcmSampleRate} SilenceDurationMs={SilenceDurationMs}.");
         return valueElement.GetString()!;
@@ -173,11 +173,11 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
             _webSocket.Options.SetRequestHeader("Authorization", $"Bearer {_clientSecret}");
             _webSocket.Options.SetRequestHeader("OpenAI-Beta", "realtime=v1");
             await _webSocket.ConnectAsync(uri, cancellationToken).ConfigureAwait(false);
-            JotMicTrace.Log("RealtimeClient", "WebSocket connected to realtime transcription session.");
+            WhisperTrace.Log("RealtimeClient", "WebSocket connected to realtime transcription session.");
 
             _receiveLoopTask = Task.Run(ReceiveLoopAsync);
             await _sessionReady.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-            JotMicTrace.Log("RealtimeClient", "Realtime transcription session is ready.");
+            WhisperTrace.Log("RealtimeClient", "Realtime transcription session is ready.");
         }
 
         public Task AppendAudioAsync(ReadOnlyMemory<byte> audioBytes, CancellationToken cancellationToken)
@@ -225,7 +225,7 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
             timeoutCts.CancelAfter(FinalizationTimeout);
 
             var result = await _completionSource.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
-            JotMicTrace.Log(
+            WhisperTrace.Log(
                 "RealtimeClient",
                 $"Completion finished. Commits={_committedEventCount} Deltas={_deltaEventCount} Completed={_completedEventCount} Length={result.Text.Length}.");
             return result;
@@ -388,7 +388,7 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
                 TryCompleteIfReadyLocked();
             }
 
-            JotMicTrace.Log("RealtimeClient", $"Committed audio buffer for item {itemId}. Count={_committedEventCount}.");
+            WhisperTrace.Log("RealtimeClient", $"Committed audio buffer for item {itemId}. Count={_committedEventCount}.");
         }
 
         private void HandleTranscriptDelta(JsonElement root)
@@ -413,7 +413,7 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
                 aggregateText = BuildAggregateTranscriptLocked();
             }
 
-            JotMicTrace.Log(
+            WhisperTrace.Log(
                 "RealtimeClient",
                 $"Transcript delta received for item {itemId}. DeltaCount={_deltaEventCount} AggregateLength={aggregateText.Length}.");
             PublishTranscriptUpdated(aggregateText);
@@ -450,7 +450,7 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
                 TryCompleteIfReadyLocked();
             }
 
-            JotMicTrace.Log(
+            WhisperTrace.Log(
                 "RealtimeClient",
                 $"Transcript item completed for {itemId}. CompletedCount={_completedEventCount} AggregateLength={aggregateText.Length}.");
             PublishTranscriptUpdated(aggregateText);
@@ -556,7 +556,7 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
 
             try
             {
-                JotMicTrace.Log("RealtimeClient", "Requesting final realtime input buffer commit.");
+                WhisperTrace.Log("RealtimeClient", "Requesting final realtime input buffer commit.");
                 await SendEventAsync(
                     new
                     {
@@ -620,7 +620,7 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
 
         private void Fail(Exception exception)
         {
-            JotMicTrace.Log("RealtimeClient", $"Realtime client failure: {exception.Message}");
+            WhisperTrace.Log("RealtimeClient", $"Realtime client failure: {exception.Message}");
             _sessionReady.TrySetException(exception);
             _completionSource.TrySetException(exception);
         }
@@ -647,7 +647,7 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
                     _pendingCommitRequests--;
                 }
 
-                JotMicTrace.Log("RealtimeClient", $"Ignoring empty final commit error: {message}");
+                WhisperTrace.Log("RealtimeClient", $"Ignoring empty final commit error: {message}");
                 TryCompleteIfReadyLocked();
             }
 

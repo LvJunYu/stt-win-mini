@@ -271,7 +271,7 @@ public sealed class AppController
             _activeWorkflowMode = mode;
         }
 
-        JotMicTrace.Log("AppController", $"Active workflow mode set to {mode}.");
+        WhisperTrace.Log("AppController", $"Active workflow mode set to {mode}.");
     }
 
     private void ResetActiveWorkflowMode()

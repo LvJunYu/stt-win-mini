@@ -28,7 +28,7 @@ public sealed class OpenAiRealtimeRecordingWorkflow : IRecordingWorkflow, IRecor
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        JotMicTrace.Log(
+        WhisperTrace.Log(
             "RealtimeWorkflow",
             "Starting realtime recording session with server-managed turn detection.");
 
@@ -67,7 +67,7 @@ public sealed class OpenAiRealtimeRecordingWorkflow : IRecordingWorkflow, IRecor
         try
         {
             await _audioCaptureSession.StartAsync(cancellationToken).ConfigureAwait(false);
-            JotMicTrace.Log("RealtimeWorkflow", "Microphone capture started for realtime session.");
+            WhisperTrace.Log("RealtimeWorkflow", "Microphone capture started for realtime session.");
         }
         catch
         {
@@ -98,7 +98,7 @@ public sealed class OpenAiRealtimeRecordingWorkflow : IRecordingWorkflow, IRecor
                 _isRecording = false;
             }
 
-            JotMicTrace.Log("RealtimeWorkflow", "Realtime session startup failed during microphone initialization.");
+            WhisperTrace.Log("RealtimeWorkflow", "Realtime session startup failed during microphone initialization.");
             throw;
         }
     }
@@ -135,12 +135,12 @@ public sealed class OpenAiRealtimeRecordingWorkflow : IRecordingWorkflow, IRecor
 
             if (Interlocked.Read(ref _totalCapturedBytes) <= 0)
             {
-                JotMicTrace.Log("RealtimeWorkflow", "Realtime session ended with no captured audio.");
+                WhisperTrace.Log("RealtimeWorkflow", "Realtime session ended with no captured audio.");
                 throw new InvalidOperationException("No audio was captured.");
             }
 
             var result = await transcriptionSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
-            JotMicTrace.Log(
+            WhisperTrace.Log(
                 "RealtimeWorkflow",
                 $"Realtime transcription completed. AudioBytes={Interlocked.Read(ref _totalCapturedBytes)} Length={result.Text.Length}.");
             return result;

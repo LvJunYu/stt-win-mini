@@ -18,11 +18,9 @@ public sealed class WindowsLaunchOnLoginService
         if (!launchOnWindowsLogin)
         {
             runKey.DeleteValue(AppIdentity.StartupValueName, throwOnMissingValue: false);
-            runKey.DeleteValue(AppIdentity.LegacyStartupValueName, throwOnMissingValue: false);
             return;
         }
 
-        runKey.DeleteValue(AppIdentity.LegacyStartupValueName, throwOnMissingValue: false);
         runKey.SetValue(AppIdentity.StartupValueName, BuildLaunchCommand(), RegistryValueKind.String);
     }
 

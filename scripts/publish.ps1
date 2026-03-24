@@ -45,7 +45,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 if ($Zip) {
-    $zipPath = Join-Path $repoRoot "artifacts\jotmic-$Runtime.zip"
+    $zipPath = Join-Path $repoRoot "artifacts\whisper-$Runtime.zip"
     if (Test-Path $zipPath) {
         Remove-Item $zipPath -Force
     }

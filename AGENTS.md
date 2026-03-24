@@ -1,7 +1,7 @@
-# JotMic Project Guide
+# whisper Project Guide
 
 ## Project
-- `JotMic` is a lightweight Windows tray app for voice-to-text.
+- `whisper` is a lightweight Windows tray app for voice-to-text.
 - The app records from the microphone, sends audio to OpenAI, and copies the final transcript to the clipboard.
 - The product is Windows-only and built as a native `.NET 10 + WPF` desktop app.
 
@@ -52,7 +52,7 @@
 - Default non-streaming model: `gpt-4o-mini-transcribe`
 - Default streaming model: `gpt-4o-transcribe`
 - Primary settings path:
-  `%LocalAppData%\\JotMic\\jotmic.settings.json`
+  `%LocalAppData%\\whisper\\whisper.settings.json`
 
 ## Realtime Notes
 - Realtime transcription has been sensitive to audio format details.

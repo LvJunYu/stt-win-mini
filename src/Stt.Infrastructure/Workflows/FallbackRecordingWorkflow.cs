@@ -37,13 +37,13 @@ public sealed class FallbackRecordingWorkflow : IRecordingWorkflow, IRecordingWo
                 _activeMode = ResolveWorkflowMode(_primaryWorkflow);
             }
 
-            JotMicTrace.Log("FallbackWorkflow", $"Primary workflow active: {_activeMode}.");
+            WhisperTrace.Log("FallbackWorkflow", $"Primary workflow active: {_activeMode}.");
 
             return;
         }
         catch (Exception primaryException)
         {
-            JotMicTrace.Log(
+            WhisperTrace.Log(
                 "FallbackWorkflow",
                 $"Primary workflow failed to start. Falling back. Reason={primaryException.Message}");
 
@@ -57,7 +57,7 @@ public sealed class FallbackRecordingWorkflow : IRecordingWorkflow, IRecordingWo
                     _activeMode = RecordingWorkflowMode.UploadAfterStopFallback;
                 }
 
-                JotMicTrace.Log("FallbackWorkflow", "Fallback workflow active: UploadAfterStopFallback.");
+                WhisperTrace.Log("FallbackWorkflow", "Fallback workflow active: UploadAfterStopFallback.");
             }
             catch
             {

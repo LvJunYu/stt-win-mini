@@ -4,10 +4,10 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
-    <AssemblyName>JotMic</AssemblyName>
-    <Product>JotMic</Product>
-    <Title>JotMic</Title>
-    <ApplicationIcon>Assets\JotMic.ico</ApplicationIcon>
+    <AssemblyName>whisper</AssemblyName>
+    <Product>whisper</Product>
+    <Title>whisper</Title>
+    <ApplicationIcon>Assets\whisper.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\JotMic.ico" />
+    <Resource Include="Assets\whisper.ico" />
   </ItemGroup>
  </Project>

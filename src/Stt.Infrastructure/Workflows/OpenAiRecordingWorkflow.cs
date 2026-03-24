@@ -27,7 +27,7 @@ public sealed class OpenAiRecordingWorkflow : IRecordingWorkflow, IRecordingWork
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        JotMicTrace.Log("BatchWorkflow", "Starting upload-after-stop recording session.");
+        WhisperTrace.Log("BatchWorkflow", "Starting upload-after-stop recording session.");
 
         lock (_syncRoot)
         {
@@ -63,7 +63,7 @@ public sealed class OpenAiRecordingWorkflow : IRecordingWorkflow, IRecordingWork
         {
             audioFile = await _audioCaptureSession.StopAsync(cancellationToken).ConfigureAwait(false);
             var result = await _transcriptionClient.TranscribeAsync(audioFile, cancellationToken).ConfigureAwait(false);
-            JotMicTrace.Log("BatchWorkflow", $"Upload-after-stop transcription completed. Length={result.Text.Length}.");
+            WhisperTrace.Log("BatchWorkflow", $"Upload-after-stop transcription completed. Length={result.Text.Length}.");
             return result;
         }
         finally
