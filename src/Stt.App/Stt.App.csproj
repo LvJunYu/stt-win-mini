@@ -4,9 +4,9 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
-    <AssemblyName>JotMic</AssemblyName>
-    <Product>JotMic</Product>
-    <Title>JotMic</Title>
+    <AssemblyName>whisper</AssemblyName>
+    <Product>whisper</Product>
+    <Title>whisper</Title>
     <ApplicationIcon>Assets\JotMic.ico</ApplicationIcon>
   </PropertyGroup>
 

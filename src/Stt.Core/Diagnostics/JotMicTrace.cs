@@ -8,9 +8,9 @@ public static class JotMicTrace
     private static readonly object SyncRoot = new();
     private static readonly string LogDirectoryPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "JotMic",
+        "whisper",
         "logs");
-    private static readonly string LogPathValue = Path.Combine(LogDirectoryPath, "jotmic-trace.log");
+    private static readonly string LogPathValue = Path.Combine(LogDirectoryPath, "whisper-trace.log");
 
     public static string LogPath => LogPathValue;
 

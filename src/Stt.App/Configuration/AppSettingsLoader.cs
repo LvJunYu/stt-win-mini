@@ -35,8 +35,7 @@ public static class AppSettingsLoader
     public static LoadedAppSettings Load()
     {
         var preferredSettingsPath = ResolvePreferredSettingsPath();
-        var legacySettingsPath = ResolveLegacySettingsPath();
-        var loadedSettingsPath = FindExistingSettingsPath(preferredSettingsPath, legacySettingsPath);
+        var loadedSettingsPath = FindExistingSettingsPath(preferredSettingsPath);
 
         SettingsFilePayload? payload = null;
         string? loadErrorMessage = null;
@@ -61,6 +60,7 @@ public static class AppSettingsLoader
                 ?? string.Empty,
             SelectedMicrophoneDeviceId: FirstNonEmpty(
                     payload?.SelectedMicrophoneDeviceId,
+                    Environment.GetEnvironmentVariable("WHISPER_SELECTED_MICROPHONE_DEVICE_ID"),
                     Environment.GetEnvironmentVariable("JOTMIC_SELECTED_MICROPHONE_DEVICE_ID"),
                     Environment.GetEnvironmentVariable("STT_SELECTED_MICROPHONE_DEVICE_ID"))
                 ?? string.Empty,
@@ -68,40 +68,49 @@ public static class AppSettingsLoader
                 FirstNonEmpty(
                     payload?.UploadAfterStopTranscriptionModel,
                     payload?.TranscriptionModel,
+                    Environment.GetEnvironmentVariable("WHISPER_UPLOAD_AFTER_STOP_TRANSCRIPTION_MODEL"),
                     Environment.GetEnvironmentVariable("JOTMIC_UPLOAD_AFTER_STOP_TRANSCRIPTION_MODEL"),
                     Environment.GetEnvironmentVariable("STT_UPLOAD_AFTER_STOP_TRANSCRIPTION_MODEL"),
+                    Environment.GetEnvironmentVariable("WHISPER_TRANSCRIPTION_MODEL"),
                     Environment.GetEnvironmentVariable("JOTMIC_TRANSCRIPTION_MODEL"),
                     Environment.GetEnvironmentVariable("STT_TRANSCRIPTION_MODEL"))),
             RealtimeTranscriptionModel: AppDefaults.NormalizeRealtimeTranscriptionModel(
                 FirstNonEmpty(
                     payload?.RealtimeTranscriptionModel,
                     payload?.TranscriptionModel,
+                    Environment.GetEnvironmentVariable("WHISPER_REALTIME_TRANSCRIPTION_MODEL"),
                     Environment.GetEnvironmentVariable("JOTMIC_REALTIME_TRANSCRIPTION_MODEL"),
                     Environment.GetEnvironmentVariable("STT_REALTIME_TRANSCRIPTION_MODEL"),
+                    Environment.GetEnvironmentVariable("WHISPER_TRANSCRIPTION_MODEL"),
                     Environment.GetEnvironmentVariable("JOTMIC_TRANSCRIPTION_MODEL"),
                     Environment.GetEnvironmentVariable("STT_TRANSCRIPTION_MODEL"))),
             EnableStreamingTranscription: FirstNonNull(
                     payload?.EnableStreamingTranscription,
+                    ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_ENABLE_STREAMING_TRANSCRIPTION")),
                     ParseBoolean(Environment.GetEnvironmentVariable("JOTMIC_ENABLE_STREAMING_TRANSCRIPTION")),
                     ParseBoolean(Environment.GetEnvironmentVariable("STT_ENABLE_STREAMING_TRANSCRIPTION")))
                 ?? false,
             ShowLiveTranscriptWhileStreaming: FirstNonNull(
                     payload?.ShowLiveTranscriptWhileStreaming,
+                    ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_SHOW_LIVE_TRANSCRIPT_WHILE_STREAMING")),
                     ParseBoolean(Environment.GetEnvironmentVariable("JOTMIC_SHOW_LIVE_TRANSCRIPT_WHILE_STREAMING")),
                     ParseBoolean(Environment.GetEnvironmentVariable("STT_SHOW_LIVE_TRANSCRIPT_WHILE_STREAMING")))
                 ?? false,
             ToggleRecordingHotkey: FirstNonEmpty(
                     payload?.ToggleRecordingHotkey,
+                    Environment.GetEnvironmentVariable("WHISPER_TOGGLE_RECORDING_HOTKEY"),
                     Environment.GetEnvironmentVariable("JOTMIC_TOGGLE_RECORDING_HOTKEY"),
                     Environment.GetEnvironmentVariable("STT_TOGGLE_RECORDING_HOTKEY"))
                 ?? "Ctrl+Alt+Space",
             ShowTranscriptWindowOnCompletion: FirstNonNull(
                     payload?.ShowTranscriptWindowOnCompletion,
+                    ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_SHOW_TRANSCRIPT_WINDOW_ON_COMPLETION")),
                     ParseBoolean(Environment.GetEnvironmentVariable("JOTMIC_SHOW_TRANSCRIPT_WINDOW_ON_COMPLETION")),
                     ParseBoolean(Environment.GetEnvironmentVariable("STT_SHOW_TRANSCRIPT_WINDOW_ON_COMPLETION")))
                 ?? false,
             LaunchOnWindowsLogin: FirstNonNull(
                     payload?.LaunchOnWindowsLogin,
+                    ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_LAUNCH_ON_WINDOWS_LOGIN")),
                     ParseBoolean(Environment.GetEnvironmentVariable("JOTMIC_LAUNCH_ON_WINDOWS_LOGIN")),
                     ParseBoolean(Environment.GetEnvironmentVariable("STT_LAUNCH_ON_WINDOWS_LOGIN")))
                 ?? true);
@@ -145,31 +154,40 @@ public static class AppSettingsLoader
         return Path.Combine(appDataDirectory, AppIdentity.SettingsFileName);
     }
 
-    private static string ResolveLegacySettingsPath()
+    private static string ResolveLegacySettingsPath(string directoryName, string fileName)
     {
         var appDataDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            AppIdentity.LegacySettingsDirectoryName);
+            directoryName);
 
-        return Path.Combine(appDataDirectory, AppIdentity.LegacySettingsFileName);
+        return Path.Combine(appDataDirectory, fileName);
     }
 
-    private static string? FindExistingSettingsPath(string preferredSettingsPath, string legacySettingsPath)
+    private static string? FindExistingSettingsPath(string preferredSettingsPath)
     {
+        var legacySettingsPaths = new[]
+        {
+            ResolveLegacySettingsPath(AppIdentity.LegacySettingsDirectoryName, AppIdentity.LegacySettingsFileName),
+            ResolveLegacySettingsPath(AppIdentity.OlderLegacySettingsDirectoryName, AppIdentity.OlderLegacySettingsFileName)
+        };
+
         var candidates = new List<string?>
         {
             preferredSettingsPath,
-            legacySettingsPath,
             Path.Combine(AppContext.BaseDirectory, AppIdentity.SettingsFileName),
             Path.Combine(AppContext.BaseDirectory, AppIdentity.LegacySettingsFileName),
+            Path.Combine(AppContext.BaseDirectory, AppIdentity.OlderLegacySettingsFileName),
             TryFindSourceSettingsPath(AppIdentity.SettingsFileName),
-            TryFindSourceSettingsPath(AppIdentity.LegacySettingsFileName)
+            TryFindSourceSettingsPath(AppIdentity.LegacySettingsFileName),
+            TryFindSourceSettingsPath(AppIdentity.OlderLegacySettingsFileName)
         };
+        candidates.AddRange(legacySettingsPaths);
 
         foreach (var directory in EnumerateAncestorDirectories(Environment.CurrentDirectory))
         {
             candidates.Add(Path.Combine(directory, AppIdentity.SettingsFileName));
             candidates.Add(Path.Combine(directory, AppIdentity.LegacySettingsFileName));
+            candidates.Add(Path.Combine(directory, AppIdentity.OlderLegacySettingsFileName));
         }
 
         return candidates

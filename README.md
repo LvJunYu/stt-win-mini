@@ -1,32 +1,35 @@
-# JotMic
+# whisper
 
-`JotMic` is a lightweight Windows-only tray app for fast voice-to-text.
+`whisper` is a lightweight Windows-only tray app for fast voice-to-text.
 
-It stays out of the way, lives in the system tray, and lets you start or end recording with a hotkey or a tray click. When you finish speaking, it copies the transcript to your clipboard so you can paste it anywhere.
+It lives in the system tray, lets you start or end recording with a hotkey or a tray click, sends audio to OpenAI, and copies the final transcript to your clipboard so you can paste it anywhere.
+
+## Download
+
+Download the latest release here:
+
+<https://github.com/LvJunYu/tts-win-mini/releases/latest>
+
+## Install
+
+1. Open the latest release page.
+2. Download `whisper-win-x64.zip`.
+3. Extract the zip to any folder on your Windows machine.
+4. Run `whisper.exe`.
+5. Open `Settings` from the tray icon and add your OpenAI API key.
 
 ## What It Does
 
 - Minimal and lightweight
-- Quick voice-to-text without heavy editor window
-- Start/End recording from a tray click or a global hotkey
-- Auto-Copy the finished transcript to the clipboard
-- Optional realtime streaming mode for a faster final result
-
-## Build And Run
-
-You need the `.NET 10 SDK` installed.
-
-Open a terminal in this repository root, the folder that contains `STT.sln`, and run:
-
-```powershell
-dotnet build STT.sln
-dotnet run --project .\src\Stt.App\Stt.App.csproj
-```
+- Windows-only tray app
+- Start / End recording from a tray click or a global hotkey
+- Auto-copy the finished transcript to the clipboard
+- Default upload-after-stop mode, with optional realtime streaming mode for comparison
 
 ## Use It
 
-1. Launch `JotMic`.
+1. Launch `whisper`.
 2. Open `Settings` from the tray icon and add your OpenAI API key.
 3. Pick your microphone, hotkey, and recording mode if you want to change the defaults.
-4. Start/End recording with the tray icon or your hotkey.
+4. Start / End recording with the tray icon or your hotkey.
 5. Paste the transcript anywhere.

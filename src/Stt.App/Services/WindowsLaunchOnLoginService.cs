@@ -19,10 +19,12 @@ public sealed class WindowsLaunchOnLoginService
         {
             runKey.DeleteValue(AppIdentity.StartupValueName, throwOnMissingValue: false);
             runKey.DeleteValue(AppIdentity.LegacyStartupValueName, throwOnMissingValue: false);
+            runKey.DeleteValue(AppIdentity.OlderLegacyStartupValueName, throwOnMissingValue: false);
             return;
         }
 
         runKey.DeleteValue(AppIdentity.LegacyStartupValueName, throwOnMissingValue: false);
+        runKey.DeleteValue(AppIdentity.OlderLegacyStartupValueName, throwOnMissingValue: false);
         runKey.SetValue(AppIdentity.StartupValueName, BuildLaunchCommand(), RegistryValueKind.String);
     }
 
