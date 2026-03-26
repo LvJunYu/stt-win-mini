@@ -11,6 +11,7 @@ public sealed record AppSettings(
     bool ShowLiveTranscriptWhileStreaming,
     string ToggleRecordingHotkey,
     bool ShowTranscriptWindowOnCompletion,
+    bool AutoPasteAfterCopy,
     bool LaunchOnWindowsLogin);
 
 public sealed record LoadedAppSettings(
@@ -76,6 +77,10 @@ public static class AppSettingsLoader
                     payload?.ShowTranscriptWindowOnCompletion,
                     ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_SHOW_TRANSCRIPT_WINDOW_ON_COMPLETION")))
                 ?? false,
+            AutoPasteAfterCopy: FirstNonNull(
+                    payload?.AutoPasteAfterCopy,
+                    ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_AUTO_PASTE_AFTER_COPY")))
+                ?? false,
             LaunchOnWindowsLogin: FirstNonNull(
                     payload?.LaunchOnWindowsLogin,
                     ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_LAUNCH_ON_WINDOWS_LOGIN")))
@@ -103,6 +108,7 @@ public static class AppSettingsLoader
             settings.ShowLiveTranscriptWhileStreaming,
             settings.ToggleRecordingHotkey,
             settings.ShowTranscriptWindowOnCompletion,
+            settings.AutoPasteAfterCopy,
             settings.LaunchOnWindowsLogin);
 
         var json = JsonSerializer.Serialize(payload, WriteSerializerOptions);
@@ -188,5 +194,6 @@ public static class AppSettingsLoader
         bool? ShowLiveTranscriptWhileStreaming,
         string? ToggleRecordingHotkey,
         bool? ShowTranscriptWindowOnCompletion,
+        bool? AutoPasteAfterCopy,
         bool? LaunchOnWindowsLogin);
 }

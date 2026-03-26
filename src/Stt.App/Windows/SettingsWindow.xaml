@@ -124,6 +124,10 @@
                                       Foreground="#203126"
                                       Content="Pop up transcript window after transcription" />
                             <CheckBox Margin="0,10,0,0"
+                                      IsChecked="{Binding AutoPasteAfterCopy}"
+                                      Foreground="#203126"
+                                      Content="Auto-paste to current focus" />
+                            <CheckBox Margin="0,10,0,0"
                                       IsChecked="{Binding LaunchOnWindowsLogin}"
                                       Foreground="#203126"
                                       Content="Launch on Windows login" />

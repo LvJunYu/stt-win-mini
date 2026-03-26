@@ -7,7 +7,10 @@ namespace Stt.App.Controllers;
 
 public sealed class AppController
 {
+    private const int AutoPasteDelayMilliseconds = 75;
     private readonly IClipboardService _clipboardService;
+    private readonly Func<bool> _autoPasteAfterCopyAccessor;
+    private readonly IPasteShortcutService _pasteShortcutService;
     private readonly object _snapshotSync = new();
     private readonly IRecordingWorkflow _recordingWorkflow;
     private readonly IRecordingWorkflowModeProvider? _recordingWorkflowModeProvider;
@@ -25,14 +28,18 @@ public sealed class AppController
     public AppController(
         IRecordingWorkflow recordingWorkflow,
         IClipboardService clipboardService,
+        IPasteShortcutService pasteShortcutService,
         Func<bool>? streamingEnabledAccessor = null,
+        Func<bool>? autoPasteAfterCopyAccessor = null,
         AppSnapshot? initialSnapshot = null)
     {
         _recordingWorkflow = recordingWorkflow;
         _recordingWorkflowModeProvider = recordingWorkflow as IRecordingWorkflowModeProvider;
         _recordingWorkflowStartupNotifier = recordingWorkflow as IRecordingWorkflowStartupNotifier;
         _clipboardService = clipboardService;
+        _pasteShortcutService = pasteShortcutService;
         _streamingEnabledAccessor = streamingEnabledAccessor ?? (() => true);
+        _autoPasteAfterCopyAccessor = autoPasteAfterCopyAccessor ?? (() => false);
         _snapshot = initialSnapshot ?? AppSnapshot.Idle;
         _recordingWorkflow.TranscriptUpdated += OnTranscriptUpdated;
         _recordingWorkflowStartupNotifier?.RecordingStarted += OnRecordingStarted;
@@ -142,10 +149,18 @@ public sealed class AppController
                 .ConfigureAwait(false);
 
             _clipboardService.CopyText(transcript.Text);
+            var autoPasteRequested = _autoPasteAfterCopyAccessor();
+            var pasteShortcutSent = false;
+
+            if (autoPasteRequested)
+            {
+                await Task.Delay(AutoPasteDelayMilliseconds).ConfigureAwait(false);
+                pasteShortcutSent = _pasteShortcutService.TrySendPasteShortcut();
+            }
 
             SetSnapshot(new AppSnapshot(
                 AppSessionState.Ready,
-                BuildReadyStatusMessage(),
+                BuildReadyStatusMessage(autoPasteRequested, pasteShortcutSent),
                 transcript.Text));
         }
         catch (Exception ex)
@@ -277,9 +292,9 @@ public sealed class AppController
         };
     }
 
-    private string BuildReadyStatusMessage()
+    private string BuildReadyStatusMessage(bool autoPasteRequested, bool pasteShortcutSent)
     {
-        return CurrentWorkflowMode switch
+        var baseMessage = CurrentWorkflowMode switch
         {
             RecordingWorkflowMode.RealtimeStreaming =>
                 "Realtime transcript copied to clipboard.",
@@ -290,6 +305,18 @@ public sealed class AppController
             _ =>
                 "Transcript copied to clipboard."
         };
+
+        if (!autoPasteRequested)
+        {
+            return baseMessage;
+        }
+
+        return pasteShortcutSent
+            ? baseMessage.Replace(
+                "copied to clipboard.",
+                "copied to clipboard and Ctrl+V sent to the current focus.",
+                StringComparison.Ordinal)
+            : $"{baseMessage} Ctrl+V could not be sent.";
     }
 
     private void UpdateActiveWorkflowMode()

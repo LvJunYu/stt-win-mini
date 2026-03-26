@@ -8,6 +8,7 @@ namespace Stt.App.ViewModels;
 public sealed class SettingsViewModel : ObservableObject
 {
     private IReadOnlyList<MicrophoneDeviceOption> _availableMicrophones;
+    private bool _autoPasteAfterCopy;
     private bool _enableStreamingTranscription;
     private bool _launchOnWindowsLogin;
     private string _openAiApiKey;
@@ -28,6 +29,7 @@ public sealed class SettingsViewModel : ObservableObject
         _showLiveTranscriptWhileStreaming = settings.ShowLiveTranscriptWhileStreaming;
         _toggleRecordingHotkey = settings.ToggleRecordingHotkey;
         _showTranscriptWindowOnCompletion = settings.ShowTranscriptWindowOnCompletion;
+        _autoPasteAfterCopy = settings.AutoPasteAfterCopy;
         _launchOnWindowsLogin = settings.LaunchOnWindowsLogin;
         SettingsPath = settingsPath;
         SaveCommand = new RelayCommand(RequestSave);
@@ -96,6 +98,12 @@ public sealed class SettingsViewModel : ObservableObject
         set => SetProperty(ref _showTranscriptWindowOnCompletion, value);
     }
 
+    public bool AutoPasteAfterCopy
+    {
+        get => _autoPasteAfterCopy;
+        set => SetProperty(ref _autoPasteAfterCopy, value);
+    }
+
     public string SettingsPath { get; }
 
     public ICommand SaveCommand { get; }
@@ -121,6 +129,7 @@ public sealed class SettingsViewModel : ObservableObject
         ShowLiveTranscriptWhileStreaming = settings.ShowLiveTranscriptWhileStreaming && settings.EnableStreamingTranscription;
         ToggleRecordingHotkey = settings.ToggleRecordingHotkey;
         ShowTranscriptWindowOnCompletion = settings.ShowTranscriptWindowOnCompletion;
+        AutoPasteAfterCopy = settings.AutoPasteAfterCopy;
         LaunchOnWindowsLogin = settings.LaunchOnWindowsLogin;
     }
 
@@ -133,6 +142,7 @@ public sealed class SettingsViewModel : ObservableObject
             ShowLiveTranscriptWhileStreaming: EnableStreamingTranscription && ShowLiveTranscriptWhileStreaming,
             ToggleRecordingHotkey: ToggleRecordingHotkey.Trim(),
             ShowTranscriptWindowOnCompletion: ShowTranscriptWindowOnCompletion,
+            AutoPasteAfterCopy: AutoPasteAfterCopy,
             LaunchOnWindowsLogin: LaunchOnWindowsLogin)));
     }
 

@@ -29,3 +29,7 @@ Download the latest release here:
 ## Use It
 1. Start / End recording with the tray icon or your hotkey.
 2. Paste the transcript anywhere.
+
+## Build & Develop
+
+Check [AGENTS.md](AGENTS.md)

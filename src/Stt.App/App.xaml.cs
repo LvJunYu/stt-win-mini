@@ -22,6 +22,7 @@ public partial class App : System.Windows.Application
         ShowLiveTranscriptWhileStreaming: false,
         ToggleRecordingHotkey: "Ctrl+Alt+Space",
         ShowTranscriptWindowOnCompletion: false,
+        AutoPasteAfterCopy: false,
         LaunchOnWindowsLogin: true);
     private AppController? _controller;
     private GlobalHotkeyService? _globalHotkeyService;
@@ -346,7 +347,9 @@ public partial class App : System.Windows.Application
         return new AppController(
             recordingWorkflow,
             new WpfClipboardService(),
-            () => _currentSettings.EnableStreamingTranscription);
+            new WindowsPasteShortcutService(),
+            () => _currentSettings.EnableStreamingTranscription,
+            () => _currentSettings.AutoPasteAfterCopy);
     }
 
     private void InitializeWindows(SettingsViewModel settingsViewModel)
@@ -405,6 +408,7 @@ public partial class App : System.Windows.Application
                 settings.EnableStreamingTranscription && settings.ShowLiveTranscriptWhileStreaming,
             ToggleRecordingHotkey: settings.ToggleRecordingHotkey.Trim(),
             ShowTranscriptWindowOnCompletion: settings.ShowTranscriptWindowOnCompletion,
+            AutoPasteAfterCopy: settings.AutoPasteAfterCopy,
             LaunchOnWindowsLogin: settings.LaunchOnWindowsLogin);
     }
 
