@@ -9,8 +9,8 @@
 - Tray-first UI with global hotkey support
 - Manual start / end recording
 - Two transcription paths:
-  upload-after-stop
-  optional realtime streaming while recording
+  default realtime streaming while recording
+  upload-after-stop fallback
 - In-app settings for API key, microphone, hotkey, startup behavior, and popup behavior
 
 ## Codebase Structure
@@ -48,8 +48,10 @@
   runtime switch between streaming and non-streaming paths
 
 ## Current Defaults
-- Non-streaming is the default recording mode
+- Streaming is the default recording mode
 - Transcription model: `gpt-4o-mini-transcribe`
+- Realtime VAD defaults: `semantic_vad` with `low` eagerness
+- Server VAD fallback defaults: `silence_duration_ms = 900`, `prefix_padding_ms = 300`
 - Primary settings path:
   `%LocalAppData%\\whisper\\whisper.settings.json`
 
@@ -63,8 +65,9 @@
   open the mic first
   switch the UI to recording when the mic is actually live
   finish the realtime connection in the background
+- Current preferred tuning in this app is `semantic_vad` with `low` eagerness.
+- Keep the server VAD settings available for testing and fallback, but do not change the audio path casually.
 - Do not switch realtime capture back to direct `24 kHz` or `48 kHz` without re-testing transcript quality carefully.
-- Realtime mode is faster, but transcript quality is still less stable than non-streaming mode.
 
 ## Build
 - From the repo root:

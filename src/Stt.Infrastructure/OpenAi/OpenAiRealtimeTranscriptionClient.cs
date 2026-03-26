@@ -15,7 +15,6 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
     private const int RealtimePcmSampleRate = 24_000;
     private const int FinalCommitMinimumAudioBytes = 4_800;
-    private const int SilenceDurationMs = 500;
 
     private readonly HttpClient _httpClient;
     private readonly Func<OpenAiTranscriptionOptions> _optionsAccessor;
@@ -68,7 +67,7 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
         {
             WhisperTrace.Log(
                 "RealtimeClient",
-                $"Created realtime transcription session via docs-aligned REST payload. Rate={RealtimePcmSampleRate}Hz SilenceDurationMs={SilenceDurationMs} Language={FormatOptionalValue(options.TranscriptionLanguage)} PromptConfigured={HasConfiguredPrompt(options)}.");
+                $"Created realtime transcription session via docs-aligned REST payload. Rate={RealtimePcmSampleRate}Hz Vad={FormatVadConfiguration(options)} Language={FormatOptionalValue(options.TranscriptionLanguage)} PromptConfigured={HasConfiguredPrompt(options)}.");
             return docsAttempt.ClientSecret!;
         }
 
@@ -98,7 +97,7 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
 
         WhisperTrace.Log(
             "RealtimeClient",
-            $"Created realtime transcription session via legacy REST payload after docs-aligned fallback. Rate={RealtimePcmSampleRate}Hz SilenceDurationMs={SilenceDurationMs} Language={FormatOptionalValue(options.TranscriptionLanguage)} PromptConfigured={HasConfiguredPrompt(options)}.");
+            $"Created realtime transcription session via legacy REST payload after docs-aligned fallback. Rate={RealtimePcmSampleRate}Hz Vad={FormatVadConfiguration(options)} Language={FormatOptionalValue(options.TranscriptionLanguage)} PromptConfigured={HasConfiguredPrompt(options)}.");
         return legacyAttempt.ClientSecret!;
     }
 
@@ -167,7 +166,7 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
                         ["type"] = "near_field"
                     },
                     ["transcription"] = BuildTranscriptionConfiguration(options),
-                    ["turn_detection"] = BuildTurnDetectionConfiguration()
+                    ["turn_detection"] = BuildTurnDetectionConfiguration(options)
                 }
             },
             ["include"] = new[]
@@ -187,7 +186,7 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
                 ["type"] = "near_field"
             },
             ["input_audio_transcription"] = BuildTranscriptionConfiguration(options),
-            ["turn_detection"] = BuildTurnDetectionConfiguration()
+            ["turn_detection"] = BuildTurnDetectionConfiguration(options)
         };
     }
 
@@ -211,14 +210,23 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
         return configuration;
     }
 
-    private static Dictionary<string, object?> BuildTurnDetectionConfiguration()
+    private static Dictionary<string, object?> BuildTurnDetectionConfiguration(OpenAiTranscriptionOptions options)
     {
+        if (options.RealtimeVadMode == RealtimeVadMode.SemanticVad)
+        {
+            return new Dictionary<string, object?>
+            {
+                ["type"] = "semantic_vad",
+                ["eagerness"] = FormatRealtimeVadEagerness(options.RealtimeVadEagerness)
+            };
+        }
+
         return new Dictionary<string, object?>
         {
             ["type"] = "server_vad",
             ["threshold"] = 0.5,
-            ["prefix_padding_ms"] = 300,
-            ["silence_duration_ms"] = SilenceDurationMs
+            ["prefix_padding_ms"] = options.RealtimePrefixPaddingMs,
+            ["silence_duration_ms"] = options.RealtimeSilenceDurationMs
         };
     }
 
@@ -237,6 +245,24 @@ public sealed class OpenAiRealtimeTranscriptionClient : IRealtimeTranscriptionCl
     private static bool HasConfiguredPrompt(OpenAiTranscriptionOptions options)
     {
         return !string.IsNullOrWhiteSpace(options.TranscriptionPrompt);
+    }
+
+    private static string FormatVadConfiguration(OpenAiTranscriptionOptions options)
+    {
+        return options.RealtimeVadMode == RealtimeVadMode.SemanticVad
+            ? $"semantic_vad eagerness={FormatRealtimeVadEagerness(options.RealtimeVadEagerness)}"
+            : $"server_vad threshold=0.5 prefix_padding_ms={options.RealtimePrefixPaddingMs} silence_duration_ms={options.RealtimeSilenceDurationMs}";
+    }
+
+    private static string FormatRealtimeVadEagerness(RealtimeVadEagerness eagerness)
+    {
+        return eagerness switch
+        {
+            RealtimeVadEagerness.Low => "low",
+            RealtimeVadEagerness.Medium => "medium",
+            RealtimeVadEagerness.High => "high",
+            _ => "auto"
+        };
     }
 
     private static string BuildErrorMessage(string payload, string? fallbackReason)

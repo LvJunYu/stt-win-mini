@@ -6,11 +6,10 @@ It lives in the system tray, lets you start or end recording with a hotkey or a 
 
 ## What It Does
 
-- Minimal tray app for quick speech-to-test daily use
-- Start/End recording from a tray click or a global hotkey
-- Auto-copy to clipboard
-- Optional realtime streaming mode (faster but less stable due to limited context during streaming)
-
+- Minimal app for quick speech-to-text daily use
+- Easy start/end recording from tray click or hotkey
+- Auto-copy to clipboard, paste anywhere
+- Fast streaming mode
 
 ## Download
 

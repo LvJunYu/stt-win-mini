@@ -88,7 +88,7 @@ public sealed class AppController
     {
         SetSnapshot(new AppSnapshot(
             AppSessionState.Starting,
-            "Opening the microphone and connecting to OpenAI.",
+            "Getting things ready.\n\nOpening the microphone now.",
             string.Empty));
 
         try
@@ -122,7 +122,7 @@ public sealed class AppController
             _snapshot = new AppSnapshot(
                 AppSessionState.Recording,
                 _streamingEnabledAccessor()
-                    ? "Recording. Connecting realtime streaming in the background."
+                    ? "Recording started.\n\nLive transcript will appear here."
                     : BuildRecordingStatusMessage(),
                 _snapshot.TranscriptText);
 
@@ -265,15 +265,15 @@ public sealed class AppController
         return mode switch
         {
             RecordingWorkflowMode.RealtimeStreaming =>
-                "Recording. Realtime streaming is active.",
+                "Recording started.\n\nLive transcript will appear here.",
             RecordingWorkflowMode.UploadAfterStopFallback =>
-                "Recording. Realtime was unavailable, using upload-after-stop fallback.",
+                "Recording started.\n\nRealtime was unavailable, so your transcript will appear here after you stop.",
             RecordingWorkflowMode.UploadAfterStop =>
-                "Recording. Audio will be uploaded after you stop.",
+                "Recording started.\n\nYour transcript will appear here after you stop.",
             _ when _streamingEnabledAccessor() =>
-                "Recording. Streaming mode was requested.",
+                "Recording started.\n\nLive transcript will appear here.",
             _ =>
-                "Recording. Audio will be uploaded after you stop."
+                "Recording started.\n\nLive transcript will appear here."
         };
     }
 
@@ -282,13 +282,13 @@ public sealed class AppController
         return CurrentWorkflowMode switch
         {
             RecordingWorkflowMode.RealtimeStreaming =>
-                "Finalizing realtime transcript and copying text.",
+                "Wrapping up your realtime transcript.\n\nThis should only take a moment.",
             RecordingWorkflowMode.UploadAfterStopFallback =>
-                "Finalizing upload-after-stop fallback transcript and copying text.",
+                "Transcribing your recording now.\n\nThis should only take a moment.",
             RecordingWorkflowMode.UploadAfterStop =>
-                "Uploading audio and copying text.",
+                "Transcribing your recording now.\n\nThis should only take a moment.",
             _ =>
-                "Finalizing transcript and copying text."
+                "Working on your transcript now.\n\nThis should only take a moment."
         };
     }
 

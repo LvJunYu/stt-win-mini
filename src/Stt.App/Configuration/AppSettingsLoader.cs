@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using Stt.App;
+using Stt.Core.Models;
 
 namespace Stt.App.Configuration;
 
@@ -8,11 +9,13 @@ public sealed record AppSettings(
     string OpenAiApiKey,
     string SelectedMicrophoneDeviceId,
     bool EnableStreamingTranscription,
-    bool ShowLiveTranscriptWhileStreaming,
     string ToggleRecordingHotkey,
-    bool ShowTranscriptWindowOnCompletion,
+    bool ShowTranscriptWindowWhenSpeaking,
     bool AutoPasteAfterCopy,
-    bool LaunchOnWindowsLogin);
+    bool LaunchOnWindowsLogin,
+    RealtimeVadMode RealtimeVadMode,
+    int RealtimeSilenceDurationMs,
+    RealtimeVadEagerness RealtimeVadEagerness);
 
 public sealed record LoadedAppSettings(
     AppSettings Settings,
@@ -64,17 +67,17 @@ public static class AppSettingsLoader
             EnableStreamingTranscription: FirstNonNull(
                     payload?.EnableStreamingTranscription,
                     ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_ENABLE_STREAMING_TRANSCRIPTION")))
-                ?? false,
-            ShowLiveTranscriptWhileStreaming: FirstNonNull(
-                    payload?.ShowLiveTranscriptWhileStreaming,
-                    ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_SHOW_LIVE_TRANSCRIPT_WHILE_STREAMING")))
-                ?? false,
+                ?? true,
             ToggleRecordingHotkey: FirstNonEmpty(
                     payload?.ToggleRecordingHotkey,
                     Environment.GetEnvironmentVariable("WHISPER_TOGGLE_RECORDING_HOTKEY"))
                 ?? "Ctrl+Alt+Space",
-            ShowTranscriptWindowOnCompletion: FirstNonNull(
+            ShowTranscriptWindowWhenSpeaking: FirstNonNull(
+                    payload?.ShowTranscriptWindowWhenSpeaking,
+                    ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_SHOW_TRANSCRIPT_WINDOW_WHEN_SPEAKING")),
+                    payload?.ShowLiveTranscriptWhileStreaming,
                     payload?.ShowTranscriptWindowOnCompletion,
+                    ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_SHOW_LIVE_TRANSCRIPT_WHILE_STREAMING")),
                     ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_SHOW_TRANSCRIPT_WINDOW_ON_COMPLETION")))
                 ?? false,
             AutoPasteAfterCopy: FirstNonNull(
@@ -84,7 +87,19 @@ public static class AppSettingsLoader
             LaunchOnWindowsLogin: FirstNonNull(
                     payload?.LaunchOnWindowsLogin,
                     ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_LAUNCH_ON_WINDOWS_LOGIN")))
-                ?? true);
+                ?? true,
+            RealtimeVadMode: FirstNonNull(
+                    ParseRealtimeVadMode(payload?.RealtimeVadMode),
+                    ParseRealtimeVadMode(Environment.GetEnvironmentVariable("WHISPER_REALTIME_VAD_MODE")))
+                ?? AppDefaults.DefaultRealtimeVadMode,
+            RealtimeSilenceDurationMs: FirstNonNull(
+                    payload?.RealtimeSilenceDurationMs,
+                    ParseInteger(Environment.GetEnvironmentVariable("WHISPER_REALTIME_SILENCE_DURATION_MS")))
+                ?? AppDefaults.DefaultRealtimeSilenceDurationMs,
+            RealtimeVadEagerness: FirstNonNull(
+                    ParseRealtimeVadEagerness(payload?.RealtimeVadEagerness),
+                    ParseRealtimeVadEagerness(Environment.GetEnvironmentVariable("WHISPER_REALTIME_VAD_EAGERNESS")))
+                ?? AppDefaults.DefaultRealtimeVadEagerness);
 
         return new LoadedAppSettings(
             settings,
@@ -101,15 +116,19 @@ public static class AppSettingsLoader
             Directory.CreateDirectory(directory);
         }
 
-        var payload = new SettingsFilePayload(
-            settings.OpenAiApiKey,
-            settings.SelectedMicrophoneDeviceId,
-            settings.EnableStreamingTranscription,
-            settings.ShowLiveTranscriptWhileStreaming,
-            settings.ToggleRecordingHotkey,
-            settings.ShowTranscriptWindowOnCompletion,
-            settings.AutoPasteAfterCopy,
-            settings.LaunchOnWindowsLogin);
+        var payload = new SettingsFilePayload
+        {
+            OpenAiApiKey = settings.OpenAiApiKey,
+            SelectedMicrophoneDeviceId = settings.SelectedMicrophoneDeviceId,
+            EnableStreamingTranscription = settings.EnableStreamingTranscription,
+            ToggleRecordingHotkey = settings.ToggleRecordingHotkey,
+            ShowTranscriptWindowWhenSpeaking = settings.ShowTranscriptWindowWhenSpeaking,
+            AutoPasteAfterCopy = settings.AutoPasteAfterCopy,
+            LaunchOnWindowsLogin = settings.LaunchOnWindowsLogin,
+            RealtimeVadMode = FormatRealtimeVadMode(settings.RealtimeVadMode),
+            RealtimeSilenceDurationMs = settings.RealtimeSilenceDurationMs,
+            RealtimeVadEagerness = FormatRealtimeVadEagerness(settings.RealtimeVadEagerness)
+        };
 
         var json = JsonSerializer.Serialize(payload, WriteSerializerOptions);
         File.WriteAllText(targetPath, json);
@@ -172,7 +191,8 @@ public static class AppSettingsLoader
         return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
     }
 
-    private static bool? FirstNonNull(params bool?[] values)
+    private static T? FirstNonNull<T>(params T?[] values)
+        where T : struct
     {
         return values.FirstOrDefault(value => value.HasValue);
     }
@@ -187,13 +207,84 @@ public static class AppSettingsLoader
         return null;
     }
 
-    private sealed record SettingsFilePayload(
-        string? OpenAiApiKey,
-        string? SelectedMicrophoneDeviceId,
-        bool? EnableStreamingTranscription,
-        bool? ShowLiveTranscriptWhileStreaming,
-        string? ToggleRecordingHotkey,
-        bool? ShowTranscriptWindowOnCompletion,
-        bool? AutoPasteAfterCopy,
-        bool? LaunchOnWindowsLogin);
+    private static int? ParseInteger(string? value)
+    {
+        if (int.TryParse(value, out var parsed) && parsed >= 0)
+        {
+            return parsed;
+        }
+
+        return null;
+    }
+
+    private static RealtimeVadMode? ParseRealtimeVadMode(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "server_vad" or "server" => RealtimeVadMode.ServerVad,
+            "semantic_vad" or "semantic" => RealtimeVadMode.SemanticVad,
+            _ => null
+        };
+    }
+
+    private static RealtimeVadEagerness? ParseRealtimeVadEagerness(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "auto" => RealtimeVadEagerness.Auto,
+            "low" => RealtimeVadEagerness.Low,
+            "medium" => RealtimeVadEagerness.Medium,
+            "high" => RealtimeVadEagerness.High,
+            _ => null
+        };
+    }
+
+    private static string FormatRealtimeVadMode(RealtimeVadMode mode)
+    {
+        return mode switch
+        {
+            RealtimeVadMode.SemanticVad => "semantic_vad",
+            _ => "server_vad"
+        };
+    }
+
+    private static string FormatRealtimeVadEagerness(RealtimeVadEagerness eagerness)
+    {
+        return eagerness switch
+        {
+            RealtimeVadEagerness.Low => "low",
+            RealtimeVadEagerness.Medium => "medium",
+            RealtimeVadEagerness.High => "high",
+            _ => "auto"
+        };
+    }
+
+    private sealed class SettingsFilePayload
+    {
+        public string? OpenAiApiKey { get; init; }
+        public string? SelectedMicrophoneDeviceId { get; init; }
+        public bool? EnableStreamingTranscription { get; init; }
+        public string? ToggleRecordingHotkey { get; init; }
+        public bool? ShowTranscriptWindowWhenSpeaking { get; init; }
+        public bool? AutoPasteAfterCopy { get; init; }
+        public bool? LaunchOnWindowsLogin { get; init; }
+        public string? RealtimeVadMode { get; init; }
+        public int? RealtimeSilenceDurationMs { get; init; }
+        public string? RealtimeVadEagerness { get; init; }
+
+        // Legacy settings kept for migration from older versions.
+        public bool? ShowLiveTranscriptWhileStreaming { get; init; }
+        public bool? ShowTranscriptWindowOnCompletion { get; init; }
+        public int? RealtimePrefixPaddingMs { get; init; }
+    }
 }

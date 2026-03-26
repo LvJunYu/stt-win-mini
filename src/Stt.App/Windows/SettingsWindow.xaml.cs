@@ -35,17 +35,28 @@ public partial class SettingsWindow : Window
         if (e.OldValue is SettingsViewModel oldViewModel)
         {
             oldViewModel.CloseRequested -= OnCloseRequested;
+            oldViewModel.ValidationFailed -= OnValidationFailed;
         }
 
         if (e.NewValue is SettingsViewModel newViewModel)
         {
             newViewModel.CloseRequested += OnCloseRequested;
+            newViewModel.ValidationFailed += OnValidationFailed;
         }
     }
 
     private void OnCloseRequested(object? sender, EventArgs e)
     {
         Hide();
+    }
+
+    private void OnValidationFailed(object? sender, string message)
+    {
+        System.Windows.MessageBox.Show(
+            message,
+            $"{AppIdentity.DisplayName} Settings",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
     }
 
     private void HotkeyTextBox_OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)

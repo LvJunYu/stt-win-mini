@@ -18,12 +18,14 @@ public partial class App : System.Windows.Application
     private AppSettings _currentSettings = new(
         OpenAiApiKey: string.Empty,
         SelectedMicrophoneDeviceId: string.Empty,
-        EnableStreamingTranscription: false,
-        ShowLiveTranscriptWhileStreaming: false,
+        EnableStreamingTranscription: true,
         ToggleRecordingHotkey: "Ctrl+Alt+Space",
-        ShowTranscriptWindowOnCompletion: false,
+        ShowTranscriptWindowWhenSpeaking: false,
         AutoPasteAfterCopy: false,
-        LaunchOnWindowsLogin: true);
+        LaunchOnWindowsLogin: true,
+        RealtimeVadMode: AppDefaults.DefaultRealtimeVadMode,
+        RealtimeSilenceDurationMs: AppDefaults.DefaultRealtimeSilenceDurationMs,
+        RealtimeVadEagerness: AppDefaults.DefaultRealtimeVadEagerness);
     private AppController? _controller;
     private GlobalHotkeyService? _globalHotkeyService;
     private HttpClient? _httpClient;
@@ -37,6 +39,7 @@ public partial class App : System.Windows.Application
     private TrayIconHost? _trayIconHost;
     private TranscriptPopupViewModel? _viewModel;
     private TranscriptWindow? _transcriptWindow;
+    private AppSessionState? _lastSnapshotState;
 
     protected override void OnStartup(System.Windows.StartupEventArgs e)
     {
@@ -114,6 +117,9 @@ public partial class App : System.Windows.Application
     {
         Dispatcher.Invoke(() =>
         {
+            var previousState = _lastSnapshotState;
+            _lastSnapshotState = snapshot.State;
+
             _viewModel?.ApplySnapshot(snapshot);
             _trayIconHost?.ApplySnapshot(snapshot);
 
@@ -123,18 +129,11 @@ public partial class App : System.Windows.Application
                 return;
             }
 
-            if (_currentSettings.EnableStreamingTranscription
-                && _currentSettings.ShowLiveTranscriptWhileStreaming
+            if (_currentSettings.ShowTranscriptWindowWhenSpeaking
                 && snapshot.State == AppSessionState.Recording
-                && _controller?.CurrentWorkflowMode == RecordingWorkflowMode.RealtimeStreaming)
+                && previousState != AppSessionState.Recording)
             {
                 ShowTranscriptWindow(activate: false);
-                return;
-            }
-
-            if (snapshot.State == AppSessionState.Ready && _currentSettings.ShowTranscriptWindowOnCompletion)
-            {
-                ShowTranscriptWindow();
             }
         });
     }
@@ -395,7 +394,11 @@ public partial class App : System.Windows.Application
                 : _currentSettings.OpenAiApiKey,
             TranscriptionModel: AppDefaults.TranscriptionModel,
             TranscriptionLanguage: GetTrimmedEnvironmentVariable("WHISPER_REALTIME_TRANSCRIPTION_LANGUAGE"),
-            TranscriptionPrompt: GetTrimmedEnvironmentVariable("WHISPER_REALTIME_TRANSCRIPTION_PROMPT"));
+            TranscriptionPrompt: GetTrimmedEnvironmentVariable("WHISPER_REALTIME_TRANSCRIPTION_PROMPT"),
+            RealtimeVadMode: _currentSettings.RealtimeVadMode,
+            RealtimeSilenceDurationMs: _currentSettings.RealtimeSilenceDurationMs,
+            RealtimePrefixPaddingMs: AppDefaults.DefaultRealtimePrefixPaddingMs,
+            RealtimeVadEagerness: _currentSettings.RealtimeVadEagerness);
     }
 
     private static AppSettings NormalizeSettings(AppSettings settings)
@@ -404,12 +407,13 @@ public partial class App : System.Windows.Application
             OpenAiApiKey: settings.OpenAiApiKey.Trim(),
             SelectedMicrophoneDeviceId: settings.SelectedMicrophoneDeviceId.Trim(),
             EnableStreamingTranscription: settings.EnableStreamingTranscription,
-            ShowLiveTranscriptWhileStreaming:
-                settings.EnableStreamingTranscription && settings.ShowLiveTranscriptWhileStreaming,
             ToggleRecordingHotkey: settings.ToggleRecordingHotkey.Trim(),
-            ShowTranscriptWindowOnCompletion: settings.ShowTranscriptWindowOnCompletion,
+            ShowTranscriptWindowWhenSpeaking: settings.ShowTranscriptWindowWhenSpeaking,
             AutoPasteAfterCopy: settings.AutoPasteAfterCopy,
-            LaunchOnWindowsLogin: settings.LaunchOnWindowsLogin);
+            LaunchOnWindowsLogin: settings.LaunchOnWindowsLogin,
+            RealtimeVadMode: settings.RealtimeVadMode,
+            RealtimeSilenceDurationMs: Math.Max(0, settings.RealtimeSilenceDurationMs),
+            RealtimeVadEagerness: settings.RealtimeVadEagerness);
     }
 
     private string? CreateSelectedMicrophoneDeviceId()
