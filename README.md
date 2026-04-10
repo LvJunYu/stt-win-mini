@@ -1,6 +1,6 @@
-# whisper
+<h1><img src="docs/readme-icon.png" alt="whisper icon" width="40" /> whisper</h1>
 
-`whisper` is a fast, lightweight Windows-only mini app for voice-to-text daily use.
+`whisper` is a fast, lightweight Windows mini app for voice-to-text daily use.
 
 ## What It Does
 
@@ -25,6 +25,10 @@ Download the latest release here:
 2. Start / End recording with the tray icon or your hotkey.
 3. Paste the transcript anywhere.
 
+### Settings panel
+
+<img src="docs/settings-panel.png" alt="whisper settings window" width="480" />
+
 ## Build & Develop
 
-Check [AGENTS.md](AGENTS.md)
+[AGENTS.md](AGENTS.md)

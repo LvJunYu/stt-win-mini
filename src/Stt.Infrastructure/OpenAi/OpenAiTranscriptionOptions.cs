@@ -8,6 +8,6 @@ public sealed record OpenAiTranscriptionOptions(
     string? TranscriptionLanguage = null,
     string? TranscriptionPrompt = null,
     RealtimeVadMode RealtimeVadMode = RealtimeVadMode.SemanticVad,
-    int RealtimeSilenceDurationMs = 900,
+    int RealtimeSilenceDurationMs = 1000,
     int RealtimePrefixPaddingMs = 300,
     RealtimeVadEagerness RealtimeVadEagerness = RealtimeVadEagerness.Low);

@@ -70,7 +70,7 @@
                         </StackPanel>
 
                         <StackPanel Margin="0,18,0,0">
-                            <TextBlock Text="Start / End Recording Hotkey"
+                            <TextBlock Text="Recording Hotkey"
                                        Foreground="#33453A"
                                        FontWeight="SemiBold" />
                             <Grid Margin="0,8,0,0">
@@ -145,7 +145,7 @@
                                            TextWrapping="Wrap" />
 
                                 <TextBlock Margin="0,16,0,0"
-                                           Text="VAD mode"
+                                           Text="Voice Activity Detection"
                                            Foreground="#33453A"
                                            FontWeight="SemiBold" />
                                 <ComboBox Margin="0,8,0,0"
@@ -170,12 +170,16 @@
                                         </Style>
                                     </StackPanel.Style>
 
-                                    <TextBlock Text="Silence duration (ms)"
+                                    <TextBlock Text="Silence duration (seconds)"
                                                Foreground="#33453A"
                                                FontWeight="SemiBold" />
                                     <TextBox Margin="0,8,0,0"
                                              Padding="12,10"
-                                             Text="{Binding RealtimeSilenceDurationMsText, UpdateSourceTrigger=PropertyChanged}"
+                                             Text="{Binding RealtimeSilenceDurationSecondsText, UpdateSourceTrigger=PropertyChanged}"
+                                             PreviewTextInput="DecimalNumberTextBox_OnPreviewTextInput"
+                                             DataObject.Pasting="DecimalNumberTextBox_OnPasting"
+                                             TextChanged="DecimalNumberTextBox_OnTextChanged"
+                                             InputMethod.IsInputMethodEnabled="False"
                                              Background="#FFFDF7"
                                              BorderBrush="#CCD7C5"
                                              Foreground="#162018" />
@@ -207,16 +211,20 @@
                                               Foreground="#162018" />
                                 </StackPanel>
 
-                                <TextBlock Margin="0,12,0,0"
-                                           Text="Max streaming length (minutes)"
-                                           Foreground="#33453A"
-                                           FontWeight="SemiBold" />
-                                <TextBox Margin="0,8,0,0"
-                                         Padding="12,10"
-                                         Text="{Binding MaxStreamingLengthMinutesText, UpdateSourceTrigger=PropertyChanged}"
-                                         Background="#FFFDF7"
-                                         BorderBrush="#CCD7C5"
-                                         Foreground="#162018" />
+                                 <TextBlock Margin="0,12,0,0"
+                                            Text="Max streaming length (minutes)"
+                                            Foreground="#33453A"
+                                            FontWeight="SemiBold" />
+                                 <TextBox Margin="0,8,0,0"
+                                          Padding="12,10"
+                                          Text="{Binding MaxStreamingLengthMinutesText, UpdateSourceTrigger=PropertyChanged}"
+                                          PreviewTextInput="WholeNumberTextBox_OnPreviewTextInput"
+                                          DataObject.Pasting="WholeNumberTextBox_OnPasting"
+                                          TextChanged="WholeNumberTextBox_OnTextChanged"
+                                          InputMethod.IsInputMethodEnabled="False"
+                                          Background="#FFFDF7"
+                                          BorderBrush="#CCD7C5"
+                                          Foreground="#162018" />
                             </StackPanel>
                         </Border>
 

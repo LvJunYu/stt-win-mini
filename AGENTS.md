@@ -51,7 +51,7 @@
 - Upload-after-stop is the default recording mode
 - Transcription model: `gpt-4o-mini-transcribe`
 - Realtime VAD defaults: `semantic_vad` with `low` eagerness
-- Server VAD fallback defaults: `silence_duration_ms = 900`, `prefix_padding_ms = 300`
+- Server VAD fallback defaults: `silence_duration_ms = 1000`, `prefix_padding_ms = 300`
 - Primary settings path:
   `%LocalAppData%\\whisper\\whisper.settings.json`
 

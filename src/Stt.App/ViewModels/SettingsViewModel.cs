@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows.Input;
 using Stt.App;
 using Stt.App.Common;
@@ -16,7 +17,7 @@ public sealed class SettingsViewModel : ObservableObject
     private bool _launchOnWindowsLogin;
     private string _maxStreamingLengthMinutesText;
     private string _openAiApiKey;
-    private string _realtimeSilenceDurationMsText;
+    private string _realtimeSilenceDurationSecondsText;
     private RealtimeVadEagerness _selectedRealtimeVadEagerness;
     private string _selectedMicrophoneDeviceId;
     private RealtimeVadMode _selectedRealtimeVadMode;
@@ -40,7 +41,7 @@ public sealed class SettingsViewModel : ObservableObject
         _autoPasteAfterCopy = settings.AutoPasteAfterCopy;
         _launchOnWindowsLogin = settings.LaunchOnWindowsLogin;
         _selectedRealtimeVadMode = settings.RealtimeVadMode;
-        _realtimeSilenceDurationMsText = settings.RealtimeSilenceDurationMs.ToString();
+        _realtimeSilenceDurationSecondsText = FormatSeconds(settings.RealtimeSilenceDurationMs);
         _selectedRealtimeVadEagerness = settings.RealtimeVadEagerness;
         SettingsPath = settingsPath;
         SaveCommand = new RelayCommand(RequestSave);
@@ -122,10 +123,10 @@ public sealed class SettingsViewModel : ObservableObject
         }
     }
 
-    public string RealtimeSilenceDurationMsText
+    public string RealtimeSilenceDurationSecondsText
     {
-        get => _realtimeSilenceDurationMsText;
-        set => SetProperty(ref _realtimeSilenceDurationMsText, value);
+        get => _realtimeSilenceDurationSecondsText;
+        set => SetProperty(ref _realtimeSilenceDurationSecondsText, value);
     }
 
     public IReadOnlyList<SettingOption<RealtimeVadEagerness>> AvailableRealtimeVadEagernessOptions => _availableRealtimeVadEagernessOptions;
@@ -168,7 +169,7 @@ public sealed class SettingsViewModel : ObservableObject
         AutoPasteAfterCopy = settings.AutoPasteAfterCopy;
         LaunchOnWindowsLogin = settings.LaunchOnWindowsLogin;
         SelectedRealtimeVadMode = settings.RealtimeVadMode;
-        RealtimeSilenceDurationMsText = settings.RealtimeSilenceDurationMs.ToString();
+        RealtimeSilenceDurationSecondsText = FormatSeconds(settings.RealtimeSilenceDurationMs);
         SelectedRealtimeVadEagerness = settings.RealtimeVadEagerness;
     }
 
@@ -184,18 +185,20 @@ public sealed class SettingsViewModel : ObservableObject
 
         var realtimeSilenceDurationMs = AppDefaults.DefaultRealtimeSilenceDurationMs;
         if (IsServerVadSelected
-            && !TryParseNonNegativeInt(
-                RealtimeSilenceDurationMsText,
+            && !TryParseNonNegativeSecondsToMilliseconds(
+                RealtimeSilenceDurationSecondsText,
                 out realtimeSilenceDurationMs))
         {
             ValidationFailed?.Invoke(
                 this,
-                "Realtime silence duration must be a non-negative whole number.");
+                "Silence duration must be a non-negative number of seconds.");
             return;
         }
 
         if (!IsServerVadSelected
-            && TryParseNonNegativeInt(RealtimeSilenceDurationMsText, out var parsedRealtimeSilenceDurationMs))
+            && TryParseNonNegativeSecondsToMilliseconds(
+                RealtimeSilenceDurationSecondsText,
+                out var parsedRealtimeSilenceDurationMs))
         {
             realtimeSilenceDurationMs = parsedRealtimeSilenceDurationMs;
         }
@@ -219,9 +222,28 @@ public sealed class SettingsViewModel : ObservableObject
         CloseRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    private static bool TryParseNonNegativeInt(string value, out int result)
+    private static bool TryParseNonNegativeSecondsToMilliseconds(string value, out int result)
     {
-        return int.TryParse(value.Trim(), out result) && result >= 0;
+        result = 0;
+
+        if (!TryParseNonNegativeDecimal(value, out var seconds))
+        {
+            return false;
+        }
+
+        result = (int)Math.Round(seconds * 1000m, MidpointRounding.AwayFromZero);
+        return true;
+    }
+
+    private static bool TryParseNonNegativeDecimal(string value, out decimal result)
+    {
+        var trimmed = value.Trim();
+        if (decimal.TryParse(trimmed, NumberStyles.Number, CultureInfo.CurrentCulture, out result) && result >= 0)
+        {
+            return true;
+        }
+
+        return decimal.TryParse(trimmed, NumberStyles.Number, CultureInfo.InvariantCulture, out result) && result >= 0;
     }
 
     private static bool TryParsePositiveInt(string value, out int result)
@@ -229,12 +251,17 @@ public sealed class SettingsViewModel : ObservableObject
         return int.TryParse(value.Trim(), out result) && result > 0;
     }
 
+    private static string FormatSeconds(int milliseconds)
+    {
+        return (milliseconds / 1000m).ToString("0.###", CultureInfo.InvariantCulture);
+    }
+
     private static IReadOnlyList<SettingOption<RealtimeVadMode>> CreateRealtimeVadModeOptions()
     {
         return
         [
-            new SettingOption<RealtimeVadMode>(RealtimeVadMode.ServerVad, "Server VAD - cuts based on silence"),
-            new SettingOption<RealtimeVadMode>(RealtimeVadMode.SemanticVad, "Semantic VAD - cuts based on meaning")
+            new SettingOption<RealtimeVadMode>(RealtimeVadMode.ServerVad, "Server mode - cuts based on silence"),
+            new SettingOption<RealtimeVadMode>(RealtimeVadMode.SemanticVad, "Semantic mode - cuts based on meaning")
         ];
     }
 
