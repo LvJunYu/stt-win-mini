@@ -9,6 +9,7 @@ using Stt.App.Windows;
 using Stt.Core.Diagnostics;
 using Stt.Core.Models;
 using Stt.Infrastructure.Audio;
+using Stt.Infrastructure.Mistral;
 using Stt.Infrastructure.OpenAi;
 using Stt.Infrastructure.Workflows;
 
@@ -18,7 +19,9 @@ public partial class App : System.Windows.Application
 {
     private AppSnapshot _currentSnapshot = AppSnapshot.Idle;
     private AppSettings _currentSettings = new(
+        TranscriptionProvider: AppDefaults.DefaultTranscriptionProvider,
         OpenAiApiKey: string.Empty,
+        MistralApiKey: string.Empty,
         SelectedMicrophoneDeviceId: string.Empty,
         EnableStreamingTranscription: AppDefaults.DefaultEnableStreamingTranscription,
         MaxStreamingLengthMinutes: AppDefaults.DefaultMaxStreamingLengthMinutes,
@@ -31,9 +34,10 @@ public partial class App : System.Windows.Application
         RealtimeVadEagerness: AppDefaults.DefaultRealtimeVadEagerness);
     private AppController? _controller;
     private GlobalHotkeyService? _globalHotkeyService;
-    private HttpClient? _httpClient;
     private WindowsLaunchOnLoginService? _launchOnLoginService;
+    private HttpClient? _mistralHttpClient;
     private NaudioMicrophoneCaptureSession? _microphoneCaptureSession;
+    private HttpClient? _openAiHttpClient;
     private NaudioStreamingMicrophoneCaptureSession? _streamingMicrophoneCaptureSession;
     private SingleInstanceGuard? _singleInstanceGuard;
     private string? _settingsPath;
@@ -63,9 +67,10 @@ public partial class App : System.Windows.Application
 
         WhisperTrace.Log(
             "App",
-            $"Startup. Executable={Environment.ProcessPath ?? "unknown"} LoadedSettingsPath={loadedSettings.LoadedSettingsPath ?? "none"} PreferredSettingsPath={loadedSettings.PreferredSettingsPath} StreamingEnabled={_currentSettings.EnableStreamingTranscription} TranscriptionModel={AppDefaults.TranscriptionModel}.");
+            $"Startup. Executable={Environment.ProcessPath ?? "unknown"} LoadedSettingsPath={loadedSettings.LoadedSettingsPath ?? "none"} PreferredSettingsPath={loadedSettings.PreferredSettingsPath} Provider={GetProviderDisplayName(_currentSettings.TranscriptionProvider)} StreamingEnabled={IsOpenAiStreamingEnabled()} TranscriptionModel={GetSelectedTranscriptionModel(_currentSettings)}.");
 
-        _httpClient = CreateHttpClient();
+        _openAiHttpClient = CreateHttpClient("https://api.openai.com/");
+        _mistralHttpClient = CreateHttpClient("https://api.mistral.ai/");
         _controller = CreateAppController();
 
         var hotkeySetup = ApplyHotkeySetting(_currentSettings.ToggleRecordingHotkey);
@@ -102,7 +107,8 @@ public partial class App : System.Windows.Application
         _globalHotkeyService?.Dispose();
         _microphoneCaptureSession?.Dispose();
         _streamingMicrophoneCaptureSession?.Dispose();
-        _httpClient?.Dispose();
+        _openAiHttpClient?.Dispose();
+        _mistralHttpClient?.Dispose();
         _singleInstanceGuard?.Dispose();
 
         base.OnExit(e);
@@ -279,12 +285,12 @@ public partial class App : System.Windows.Application
                 string.Empty);
         }
 
-        if (string.IsNullOrWhiteSpace(loadedSettings.Settings.OpenAiApiKey))
+        if (!HasConfiguredProviderApiKey(loadedSettings.Settings))
         {
             return new AppSnapshot(
                 AppSessionState.Idle,
                 AppendStartupWarning(
-                    "Open Settings from the tray menu and add your OpenAI API key.",
+                    $"Open Settings from the tray menu and add your {GetProviderDisplayName(loadedSettings.Settings.TranscriptionProvider)} API key.",
                     launchOnLoginError),
                 string.Empty);
         }
@@ -309,11 +315,11 @@ public partial class App : System.Windows.Application
             string.Empty);
     }
 
-    private HttpClient CreateHttpClient()
+    private HttpClient CreateHttpClient(string baseAddress)
     {
         return new HttpClient
         {
-            BaseAddress = new Uri("https://api.openai.com/"),
+            BaseAddress = new Uri(baseAddress),
             Timeout = TimeSpan.FromSeconds(90)
         };
     }
@@ -323,25 +329,33 @@ public partial class App : System.Windows.Application
         _microphoneCaptureSession = new NaudioMicrophoneCaptureSession(CreateSelectedMicrophoneDeviceId);
         _streamingMicrophoneCaptureSession = new NaudioStreamingMicrophoneCaptureSession(CreateSelectedMicrophoneDeviceId);
 
-        var transcriptionClient = new OpenAiTranscriptionClient(_httpClient!, CreateBatchTranscriptionOptions);
-        var realtimeTranscriptionClient = new OpenAiRealtimeTranscriptionClient(_httpClient!, CreateRealtimeTranscriptionOptions);
-        var fallbackRecordingWorkflow = new OpenAiRecordingWorkflow(_microphoneCaptureSession, transcriptionClient);
+        var openAiTranscriptionClient = new OpenAiTranscriptionClient(_openAiHttpClient!, CreateOpenAiBatchTranscriptionOptions);
+        var mistralTranscriptionClient = new MistralTranscriptionClient(_mistralHttpClient!, CreateMistralBatchTranscriptionOptions);
+        var realtimeTranscriptionClient = new OpenAiRealtimeTranscriptionClient(_openAiHttpClient!, CreateOpenAiRealtimeTranscriptionOptions);
+        var openAiBatchWorkflow = new UploadAfterStopRecordingWorkflow(_microphoneCaptureSession, openAiTranscriptionClient);
+        var mistralBatchWorkflow = new UploadAfterStopRecordingWorkflow(_microphoneCaptureSession, mistralTranscriptionClient);
         var realtimeRecordingWorkflow = new OpenAiRealtimeRecordingWorkflow(
             _streamingMicrophoneCaptureSession,
             realtimeTranscriptionClient);
         var streamingRecordingWorkflow = new FallbackRecordingWorkflow(
             realtimeRecordingWorkflow,
-            fallbackRecordingWorkflow);
-        var recordingWorkflow = new SelectableRecordingWorkflow(
-            () => _currentSettings.EnableStreamingTranscription,
+            openAiBatchWorkflow);
+        var openAiRecordingWorkflow = new SelectableRecordingWorkflow(
+            IsOpenAiStreamingEnabled,
             streamingRecordingWorkflow,
-            fallbackRecordingWorkflow);
+            openAiBatchWorkflow);
+        var recordingWorkflow = new ProviderSelectableRecordingWorkflow(
+            () => _currentSettings.TranscriptionProvider == TranscriptionProvider.OpenAi,
+            openAiRecordingWorkflow,
+            mistralBatchWorkflow,
+            primaryLabel: "OpenAI",
+            secondaryLabel: "Mistral");
 
         return new AppController(
             recordingWorkflow,
             new WpfClipboardService(),
             new WindowsPasteShortcutService(),
-            () => _currentSettings.EnableStreamingTranscription,
+            IsOpenAiStreamingEnabled,
             () => _currentSettings.AutoPasteAfterCopy,
             () => _currentSettings.MaxStreamingLengthMinutes,
             ConfirmLongRecordingTranscriptionAsync);
@@ -388,22 +402,32 @@ public partial class App : System.Windows.Application
             recordingStopHint: hotkeySetup.RecordingStopHint);
     }
 
-    private OpenAiTranscriptionOptions CreateBatchTranscriptionOptions()
+    private OpenAiTranscriptionOptions CreateOpenAiBatchTranscriptionOptions()
     {
         return new OpenAiTranscriptionOptions(
             ApiKey: string.IsNullOrWhiteSpace(_currentSettings.OpenAiApiKey)
                 ? null
                 : _currentSettings.OpenAiApiKey,
-            TranscriptionModel: AppDefaults.TranscriptionModel);
+            TranscriptionModel: AppDefaults.OpenAiTranscriptionModel);
     }
 
-    private OpenAiTranscriptionOptions CreateRealtimeTranscriptionOptions()
+    private MistralTranscriptionOptions CreateMistralBatchTranscriptionOptions()
+    {
+        return new MistralTranscriptionOptions(
+            ApiKey: string.IsNullOrWhiteSpace(_currentSettings.MistralApiKey)
+                ? null
+                : _currentSettings.MistralApiKey,
+            TranscriptionModel: AppDefaults.MistralTranscriptionModel,
+            TranscriptionLanguage: GetTrimmedEnvironmentVariable("WHISPER_TRANSCRIPTION_LANGUAGE"));
+    }
+
+    private OpenAiTranscriptionOptions CreateOpenAiRealtimeTranscriptionOptions()
     {
         return new OpenAiTranscriptionOptions(
             ApiKey: string.IsNullOrWhiteSpace(_currentSettings.OpenAiApiKey)
                 ? null
                 : _currentSettings.OpenAiApiKey,
-            TranscriptionModel: AppDefaults.TranscriptionModel,
+            TranscriptionModel: AppDefaults.OpenAiTranscriptionModel,
             TranscriptionLanguage: GetTrimmedEnvironmentVariable("WHISPER_REALTIME_TRANSCRIPTION_LANGUAGE"),
             TranscriptionPrompt: GetTrimmedEnvironmentVariable("WHISPER_REALTIME_TRANSCRIPTION_PROMPT"),
             RealtimeVadMode: _currentSettings.RealtimeVadMode,
@@ -415,7 +439,9 @@ public partial class App : System.Windows.Application
     private static AppSettings NormalizeSettings(AppSettings settings)
     {
         return new AppSettings(
+            TranscriptionProvider: settings.TranscriptionProvider,
             OpenAiApiKey: settings.OpenAiApiKey.Trim(),
+            MistralApiKey: settings.MistralApiKey.Trim(),
             SelectedMicrophoneDeviceId: settings.SelectedMicrophoneDeviceId.Trim(),
             EnableStreamingTranscription: settings.EnableStreamingTranscription,
             MaxStreamingLengthMinutes: Math.Max(1, settings.MaxStreamingLengthMinutes),
@@ -433,6 +459,39 @@ public partial class App : System.Windows.Application
         return string.IsNullOrWhiteSpace(_currentSettings.SelectedMicrophoneDeviceId)
             ? null
             : _currentSettings.SelectedMicrophoneDeviceId;
+    }
+
+    private bool IsOpenAiStreamingEnabled()
+    {
+        return _currentSettings.TranscriptionProvider == TranscriptionProvider.OpenAi
+            && _currentSettings.EnableStreamingTranscription;
+    }
+
+    private static string GetProviderDisplayName(TranscriptionProvider provider)
+    {
+        return provider switch
+        {
+            TranscriptionProvider.Mistral => "Mistral",
+            _ => "OpenAI"
+        };
+    }
+
+    private static string GetSelectedTranscriptionModel(AppSettings settings)
+    {
+        return settings.TranscriptionProvider switch
+        {
+            TranscriptionProvider.Mistral => AppDefaults.MistralTranscriptionModel,
+            _ => AppDefaults.OpenAiTranscriptionModel
+        };
+    }
+
+    private static bool HasConfiguredProviderApiKey(AppSettings settings)
+    {
+        return settings.TranscriptionProvider switch
+        {
+            TranscriptionProvider.Mistral => !string.IsNullOrWhiteSpace(settings.MistralApiKey),
+            _ => !string.IsNullOrWhiteSpace(settings.OpenAiApiKey)
+        };
     }
 
     private static string? GetTrimmedEnvironmentVariable(string variableName)

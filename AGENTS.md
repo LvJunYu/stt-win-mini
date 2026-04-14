@@ -2,7 +2,7 @@
 
 ## Project
 - `whisper` is a lightweight Windows tray app for voice-to-text.
-- The app records from the microphone, sends audio to OpenAI, and copies the final transcript to the clipboard.
+- The app records from the microphone, sends audio to a configured transcription provider, and copies the final transcript to the clipboard.
 - The product is Windows-only and built as a native `.NET 10 + WPF` desktop app.
 
 ## Current App Shape
@@ -11,7 +11,7 @@
 - Two transcription paths:
   default upload-after-stop recording
   optional realtime streaming while recording
-- In-app settings for API key, microphone, hotkey, startup behavior, and popup behavior
+- In-app settings for provider selection, API keys, microphone, hotkey, startup behavior, and popup behavior
 
 ## Codebase Structure
 - `src/Stt.App`
@@ -37,10 +37,12 @@
 - `src/Stt.Infrastructure/Audio`
   microphone capture implementations for batch and realtime paths
 - `src/Stt.Infrastructure/OpenAi/OpenAiTranscriptionClient.cs`
-  upload-after-stop transcription client
+  OpenAI upload-after-stop transcription client
+- `src/Stt.Infrastructure/Mistral/MistralTranscriptionClient.cs`
+  Mistral upload-after-stop transcription client
 - `src/Stt.Infrastructure/OpenAi/OpenAiRealtimeTranscriptionClient.cs`
   realtime transcription session client
-- `src/Stt.Infrastructure/Workflows/OpenAiRecordingWorkflow.cs`
+- `src/Stt.Infrastructure/Workflows/UploadAfterStopRecordingWorkflow.cs`
   upload-after-stop workflow
 - `src/Stt.Infrastructure/Workflows/OpenAiRealtimeRecordingWorkflow.cs`
   realtime streaming workflow

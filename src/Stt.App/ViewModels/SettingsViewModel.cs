@@ -10,16 +10,19 @@ namespace Stt.App.ViewModels;
 public sealed class SettingsViewModel : ObservableObject
 {
     private IReadOnlyList<MicrophoneDeviceOption> _availableMicrophones;
+    private IReadOnlyList<SettingOption<TranscriptionProvider>> _availableTranscriptionProviders;
     private IReadOnlyList<SettingOption<RealtimeVadEagerness>> _availableRealtimeVadEagernessOptions;
     private IReadOnlyList<SettingOption<RealtimeVadMode>> _availableRealtimeVadModes;
     private bool _autoPasteAfterCopy;
     private bool _enableStreamingTranscription;
     private bool _launchOnWindowsLogin;
     private string _maxStreamingLengthMinutesText;
+    private string _mistralApiKey;
     private string _openAiApiKey;
     private string _realtimeSilenceDurationSecondsText;
     private RealtimeVadEagerness _selectedRealtimeVadEagerness;
     private string _selectedMicrophoneDeviceId;
+    private TranscriptionProvider _selectedTranscriptionProvider;
     private RealtimeVadMode _selectedRealtimeVadMode;
     private bool _showTranscriptWindowWhenSpeaking;
     private string _toggleRecordingHotkey;
@@ -30,9 +33,12 @@ public sealed class SettingsViewModel : ObservableObject
         IReadOnlyList<MicrophoneDeviceOption> availableMicrophones)
     {
         _availableMicrophones = availableMicrophones;
+        _availableTranscriptionProviders = CreateTranscriptionProviderOptions();
         _availableRealtimeVadModes = CreateRealtimeVadModeOptions();
         _availableRealtimeVadEagernessOptions = CreateRealtimeVadEagernessOptions();
+        _selectedTranscriptionProvider = settings.TranscriptionProvider;
         _openAiApiKey = settings.OpenAiApiKey;
+        _mistralApiKey = settings.MistralApiKey;
         _selectedMicrophoneDeviceId = settings.SelectedMicrophoneDeviceId;
         _enableStreamingTranscription = settings.EnableStreamingTranscription;
         _maxStreamingLengthMinutesText = settings.MaxStreamingLengthMinutes.ToString();
@@ -58,6 +64,12 @@ public sealed class SettingsViewModel : ObservableObject
         set => SetProperty(ref _openAiApiKey, value);
     }
 
+    public string MistralApiKey
+    {
+        get => _mistralApiKey;
+        set => SetProperty(ref _mistralApiKey, value);
+    }
+
     public bool LaunchOnWindowsLogin
     {
         get => _launchOnWindowsLogin;
@@ -67,7 +79,15 @@ public sealed class SettingsViewModel : ObservableObject
     public bool EnableStreamingTranscription
     {
         get => _enableStreamingTranscription;
-        set => SetProperty(ref _enableStreamingTranscription, value);
+        set
+        {
+            if (!SetProperty(ref _enableStreamingTranscription, value))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(ShowStreamingSettings));
+        }
     }
 
     public string MaxStreamingLengthMinutesText
@@ -92,6 +112,24 @@ public sealed class SettingsViewModel : ObservableObject
     {
         get => _toggleRecordingHotkey;
         set => SetProperty(ref _toggleRecordingHotkey, value);
+    }
+
+    public IReadOnlyList<SettingOption<TranscriptionProvider>> AvailableTranscriptionProviders => _availableTranscriptionProviders;
+
+    public TranscriptionProvider SelectedTranscriptionProvider
+    {
+        get => _selectedTranscriptionProvider;
+        set
+        {
+            if (!SetProperty(ref _selectedTranscriptionProvider, value))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(IsOpenAiSelected));
+            OnPropertyChanged(nameof(IsMistralSelected));
+            OnPropertyChanged(nameof(ShowStreamingSettings));
+        }
     }
 
     public bool ShowTranscriptWindowWhenSpeaking
@@ -141,6 +179,12 @@ public sealed class SettingsViewModel : ObservableObject
 
     public bool IsSemanticVadSelected => SelectedRealtimeVadMode == RealtimeVadMode.SemanticVad;
 
+    public bool IsOpenAiSelected => SelectedTranscriptionProvider == TranscriptionProvider.OpenAi;
+
+    public bool IsMistralSelected => SelectedTranscriptionProvider == TranscriptionProvider.Mistral;
+
+    public bool ShowStreamingSettings => IsOpenAiSelected && EnableStreamingTranscription;
+
     public string SettingsPath { get; }
 
     public ICommand SaveCommand { get; }
@@ -158,7 +202,9 @@ public sealed class SettingsViewModel : ObservableObject
 
     public void ApplySettings(AppSettings settings)
     {
+        SelectedTranscriptionProvider = settings.TranscriptionProvider;
         OpenAiApiKey = settings.OpenAiApiKey;
+        MistralApiKey = settings.MistralApiKey;
         SelectedMicrophoneDeviceId = AvailableMicrophones.Any(option => option.DeviceId == settings.SelectedMicrophoneDeviceId)
             ? settings.SelectedMicrophoneDeviceId
             : AvailableMicrophones.FirstOrDefault()?.DeviceId ?? string.Empty;
@@ -204,7 +250,9 @@ public sealed class SettingsViewModel : ObservableObject
         }
 
         SaveRequested?.Invoke(this, new AppSettingsSaveRequestedEventArgs(new AppSettings(
+            TranscriptionProvider: SelectedTranscriptionProvider,
             OpenAiApiKey: OpenAiApiKey.Trim(),
+            MistralApiKey: MistralApiKey.Trim(),
             SelectedMicrophoneDeviceId: SelectedMicrophoneDeviceId.Trim(),
             EnableStreamingTranscription: EnableStreamingTranscription,
             MaxStreamingLengthMinutes: maxStreamingLengthMinutes,
@@ -262,6 +310,15 @@ public sealed class SettingsViewModel : ObservableObject
         [
             new SettingOption<RealtimeVadMode>(RealtimeVadMode.ServerVad, "Server mode - cuts based on silence"),
             new SettingOption<RealtimeVadMode>(RealtimeVadMode.SemanticVad, "Semantic mode - cuts based on meaning")
+        ];
+    }
+
+    private static IReadOnlyList<SettingOption<TranscriptionProvider>> CreateTranscriptionProviderOptions()
+    {
+        return
+        [
+            new SettingOption<TranscriptionProvider>(TranscriptionProvider.OpenAi, "OpenAI"),
+            new SettingOption<TranscriptionProvider>(TranscriptionProvider.Mistral, "Mistral")
         ];
     }
 

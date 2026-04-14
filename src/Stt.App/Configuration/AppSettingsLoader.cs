@@ -6,7 +6,9 @@ using Stt.Core.Models;
 namespace Stt.App.Configuration;
 
 public sealed record AppSettings(
+    TranscriptionProvider TranscriptionProvider,
     string OpenAiApiKey,
+    string MistralApiKey,
     string SelectedMicrophoneDeviceId,
     bool EnableStreamingTranscription,
     int MaxStreamingLengthMinutes,
@@ -57,9 +59,17 @@ public static class AppSettingsLoader
         }
 
         var settings = new AppSettings(
+            TranscriptionProvider: FirstNonNull(
+                    ParseTranscriptionProvider(payload?.TranscriptionProvider),
+                    ParseTranscriptionProvider(Environment.GetEnvironmentVariable("WHISPER_TRANSCRIPTION_PROVIDER")))
+                ?? AppDefaults.DefaultTranscriptionProvider,
             OpenAiApiKey: FirstNonEmpty(
                 payload?.OpenAiApiKey,
                 Environment.GetEnvironmentVariable("OPENAI_API_KEY"))
+                ?? string.Empty,
+            MistralApiKey: FirstNonEmpty(
+                payload?.MistralApiKey,
+                Environment.GetEnvironmentVariable("MISTRAL_API_KEY"))
                 ?? string.Empty,
             SelectedMicrophoneDeviceId: FirstNonEmpty(
                     payload?.SelectedMicrophoneDeviceId,
@@ -123,7 +133,9 @@ public static class AppSettingsLoader
 
         var payload = new SettingsFilePayload
         {
+            TranscriptionProvider = FormatTranscriptionProvider(settings.TranscriptionProvider),
             OpenAiApiKey = settings.OpenAiApiKey,
+            MistralApiKey = settings.MistralApiKey,
             SelectedMicrophoneDeviceId = settings.SelectedMicrophoneDeviceId,
             EnableStreamingTranscription = settings.EnableStreamingTranscription,
             MaxStreamingLengthMinutes = settings.MaxStreamingLengthMinutes,
@@ -248,6 +260,21 @@ public static class AppSettingsLoader
         };
     }
 
+    private static TranscriptionProvider? ParseTranscriptionProvider(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "openai" or "open_ai" => TranscriptionProvider.OpenAi,
+            "mistral" => TranscriptionProvider.Mistral,
+            _ => null
+        };
+    }
+
     private static RealtimeVadEagerness? ParseRealtimeVadEagerness(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -274,6 +301,15 @@ public static class AppSettingsLoader
         };
     }
 
+    private static string FormatTranscriptionProvider(TranscriptionProvider provider)
+    {
+        return provider switch
+        {
+            TranscriptionProvider.Mistral => "mistral",
+            _ => "openai"
+        };
+    }
+
     private static string FormatRealtimeVadEagerness(RealtimeVadEagerness eagerness)
     {
         return eagerness switch
@@ -287,7 +323,9 @@ public static class AppSettingsLoader
 
     private sealed class SettingsFilePayload
     {
+        public string? TranscriptionProvider { get; init; }
         public string? OpenAiApiKey { get; init; }
+        public string? MistralApiKey { get; init; }
         public string? SelectedMicrophoneDeviceId { get; init; }
         public bool? EnableStreamingTranscription { get; init; }
         public int? MaxStreamingLengthMinutes { get; init; }

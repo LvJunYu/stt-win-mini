@@ -33,7 +33,8 @@ public sealed class AppController
     private static readonly string[] NonCriticalFailureMessages =
     [
         "No audio was captured.",
-        "OpenAI returned an empty transcript."
+        "OpenAI returned an empty transcript.",
+        "The transcription service returned an empty transcript."
     ];
 
     public AppController(
@@ -330,7 +331,7 @@ public sealed class AppController
             return "No speech was captured. Ready to record again.";
         }
 
-        if (string.Equals(message, "OpenAI returned an empty transcript.", StringComparison.OrdinalIgnoreCase))
+        if (message.Contains("empty transcript", StringComparison.OrdinalIgnoreCase))
         {
             return "Transcript was empty. Ready to record again.";
         }

@@ -4,14 +4,14 @@ using Stt.Core.Models;
 
 namespace Stt.Infrastructure.Workflows;
 
-public sealed class OpenAiRecordingWorkflow : IRecordingWorkflow, IRecordingWorkflowModeProvider, IRecordingWorkflowDeferredStop
+public sealed class UploadAfterStopRecordingWorkflow : IRecordingWorkflow, IRecordingWorkflowModeProvider, IRecordingWorkflowDeferredStop
 {
     private readonly IAudioCaptureSession _audioCaptureSession;
     private readonly ITranscriptionClient _transcriptionClient;
     private readonly object _syncRoot = new();
     private bool _isRecording;
 
-    public OpenAiRecordingWorkflow(
+    public UploadAfterStopRecordingWorkflow(
         IAudioCaptureSession audioCaptureSession,
         ITranscriptionClient transcriptionClient)
     {

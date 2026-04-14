@@ -4,8 +4,10 @@ namespace Stt.App;
 
 public static class AppDefaults
 {
+    public const TranscriptionProvider DefaultTranscriptionProvider = TranscriptionProvider.OpenAi;
     public const bool DefaultEnableStreamingTranscription = false;
-    public const string TranscriptionModel = "gpt-4o-mini-transcribe";
+    public const string OpenAiTranscriptionModel = "gpt-4o-mini-transcribe";
+    public const string MistralTranscriptionModel = "voxtral-mini-latest";
     public const int LongNonStreamingConfirmationThresholdMinutes = 10;
     public const int DefaultMaxStreamingLengthMinutes = 10;
     public const RealtimeVadMode DefaultRealtimeVadMode = RealtimeVadMode.SemanticVad;

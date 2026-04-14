@@ -43,12 +43,59 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="22,22,22,18">
                         <StackPanel>
+                            <TextBlock Text="Speech provider"
+                                       Foreground="#33453A"
+                                       FontWeight="SemiBold" />
+                            <ComboBox Margin="0,8,0,0"
+                                      Padding="10,6"
+                                      ItemsSource="{Binding AvailableTranscriptionProviders}"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectedValuePath="Value"
+                                      SelectedValue="{Binding SelectedTranscriptionProvider, UpdateSourceTrigger=PropertyChanged}"
+                                      Background="#FFFDF7"
+                                      BorderBrush="#CCD7C5"
+                                      Foreground="#162018" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,18,0,0">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsOpenAiSelected}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
                             <TextBlock Text="OpenAI API Key"
                                        Foreground="#33453A"
                                        FontWeight="SemiBold" />
                             <TextBox Margin="0,8,0,0"
                                      Padding="12,10"
                                      Text="{Binding OpenAiApiKey, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#FFFDF7"
+                                     BorderBrush="#CCD7C5"
+                                     Foreground="#162018" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,18,0,0">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMistralSelected}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="Mistral API Key"
+                                       Foreground="#33453A"
+                                       FontWeight="SemiBold" />
+                            <TextBox Margin="0,8,0,0"
+                                     Padding="12,10"
+                                     Text="{Binding MistralApiKey, UpdateSourceTrigger=PropertyChanged}"
                                      Background="#FFFDF7"
                                      BorderBrush="#CCD7C5"
                                      Foreground="#162018" />
@@ -116,7 +163,33 @@
                             <CheckBox Margin="0,10,0,0"
                                       IsChecked="{Binding EnableStreamingTranscription}"
                                       Foreground="#203126"
-                                      Content="Streaming for faster transcription" />
+                                      Content="Streaming for faster transcription">
+                                <CheckBox.Style>
+                                    <Style TargetType="CheckBox">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsOpenAiSelected}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </CheckBox.Style>
+                            </CheckBox>
+                            <TextBlock Margin="0,10,0,0"
+                                       Foreground="#617362"
+                                       TextWrapping="Wrap"
+                                       Text="Mistral currently uses upload-after-stop transcription in whisper.">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsMistralSelected}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </StackPanel>
 
                         <Border Margin="0,18,0,0"
@@ -129,7 +202,7 @@
                                 <Style TargetType="Border">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding EnableStreamingTranscription}" Value="True">
+                                        <DataTrigger Binding="{Binding ShowStreamingSettings}" Value="True">
                                             <Setter Property="Visibility" Value="Visible" />
                                         </DataTrigger>
                                     </Style.Triggers>
