@@ -18,4 +18,8 @@
   <ItemGroup>
     <Resource Include="Assets\whisper.ico" />
   </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\recording-ready.wav" LogicalName="Stt.App.Assets.recording-ready.wav" />
+  </ItemGroup>
  </Project>

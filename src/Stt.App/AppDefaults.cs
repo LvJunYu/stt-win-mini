@@ -6,6 +6,7 @@ public static class AppDefaults
 {
     public const TranscriptionProvider DefaultTranscriptionProvider = TranscriptionProvider.OpenAi;
     public const bool DefaultEnableStreamingTranscription = false;
+    public const bool DefaultEnableRecordingReadySoundCue = true;
     public const string OpenAiTranscriptionModel = "gpt-4o-mini-transcribe";
     public const string MistralTranscriptionModel = "voxtral-mini-latest";
     public const int LongNonStreamingConfirmationThresholdMinutes = 10;

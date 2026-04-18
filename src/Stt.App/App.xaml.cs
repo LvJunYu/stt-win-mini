@@ -27,6 +27,7 @@ public partial class App : System.Windows.Application
         MaxStreamingLengthMinutes: AppDefaults.DefaultMaxStreamingLengthMinutes,
         ToggleRecordingHotkey: "Ctrl+Alt+Space",
         ShowTranscriptWindowWhenSpeaking: false,
+        EnableRecordingReadySoundCue: AppDefaults.DefaultEnableRecordingReadySoundCue,
         AutoPasteAfterCopy: false,
         LaunchOnWindowsLogin: true,
         RealtimeVadMode: AppDefaults.DefaultRealtimeVadMode,
@@ -121,6 +122,8 @@ public partial class App : System.Windows.Application
             var previousState = _lastSnapshotState;
             _lastSnapshotState = snapshot.State;
             _currentSnapshot = snapshot;
+            var recordingJustStarted = snapshot.State == AppSessionState.Recording
+                && previousState != AppSessionState.Recording;
 
             _viewModel?.ApplySnapshot(snapshot);
             _trayIconHost?.ApplySnapshot(snapshot);
@@ -131,9 +134,14 @@ public partial class App : System.Windows.Application
                 return;
             }
 
+            if (_currentSettings.EnableRecordingReadySoundCue
+                && recordingJustStarted)
+            {
+                RecordingReadySoundCuePlayer.Play();
+            }
+
             if (_currentSettings.ShowTranscriptWindowWhenSpeaking
-                && snapshot.State == AppSessionState.Recording
-                && previousState != AppSessionState.Recording)
+                && recordingJustStarted)
             {
                 ShowTranscriptWindow(activate: false);
             }
@@ -447,6 +455,7 @@ public partial class App : System.Windows.Application
             MaxStreamingLengthMinutes: Math.Max(1, settings.MaxStreamingLengthMinutes),
             ToggleRecordingHotkey: settings.ToggleRecordingHotkey.Trim(),
             ShowTranscriptWindowWhenSpeaking: settings.ShowTranscriptWindowWhenSpeaking,
+            EnableRecordingReadySoundCue: settings.EnableRecordingReadySoundCue,
             AutoPasteAfterCopy: settings.AutoPasteAfterCopy,
             LaunchOnWindowsLogin: settings.LaunchOnWindowsLogin,
             RealtimeVadMode: settings.RealtimeVadMode,

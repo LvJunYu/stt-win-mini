@@ -14,6 +14,7 @@ public sealed record AppSettings(
     int MaxStreamingLengthMinutes,
     string ToggleRecordingHotkey,
     bool ShowTranscriptWindowWhenSpeaking,
+    bool EnableRecordingReadySoundCue,
     bool AutoPasteAfterCopy,
     bool LaunchOnWindowsLogin,
     RealtimeVadMode RealtimeVadMode,
@@ -95,6 +96,10 @@ public static class AppSettingsLoader
                     ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_SHOW_LIVE_TRANSCRIPT_WHILE_STREAMING")),
                     ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_SHOW_TRANSCRIPT_WINDOW_ON_COMPLETION")))
                 ?? false,
+            EnableRecordingReadySoundCue: FirstNonNull(
+                    payload?.EnableRecordingReadySoundCue,
+                    ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_ENABLE_RECORDING_READY_SOUND_CUE")))
+                ?? AppDefaults.DefaultEnableRecordingReadySoundCue,
             AutoPasteAfterCopy: FirstNonNull(
                     payload?.AutoPasteAfterCopy,
                     ParseBoolean(Environment.GetEnvironmentVariable("WHISPER_AUTO_PASTE_AFTER_COPY")))
@@ -141,6 +146,7 @@ public static class AppSettingsLoader
             MaxStreamingLengthMinutes = settings.MaxStreamingLengthMinutes,
             ToggleRecordingHotkey = settings.ToggleRecordingHotkey,
             ShowTranscriptWindowWhenSpeaking = settings.ShowTranscriptWindowWhenSpeaking,
+            EnableRecordingReadySoundCue = settings.EnableRecordingReadySoundCue,
             AutoPasteAfterCopy = settings.AutoPasteAfterCopy,
             LaunchOnWindowsLogin = settings.LaunchOnWindowsLogin,
             RealtimeVadMode = FormatRealtimeVadMode(settings.RealtimeVadMode),
@@ -331,6 +337,7 @@ public static class AppSettingsLoader
         public int? MaxStreamingLengthMinutes { get; init; }
         public string? ToggleRecordingHotkey { get; init; }
         public bool? ShowTranscriptWindowWhenSpeaking { get; init; }
+        public bool? EnableRecordingReadySoundCue { get; init; }
         public bool? AutoPasteAfterCopy { get; init; }
         public bool? LaunchOnWindowsLogin { get; init; }
         public string? RealtimeVadMode { get; init; }

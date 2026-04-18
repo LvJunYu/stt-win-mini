@@ -15,6 +15,7 @@ public sealed class SettingsViewModel : ObservableObject
     private IReadOnlyList<SettingOption<RealtimeVadMode>> _availableRealtimeVadModes;
     private bool _autoPasteAfterCopy;
     private bool _enableStreamingTranscription;
+    private bool _enableRecordingReadySoundCue;
     private bool _launchOnWindowsLogin;
     private string _maxStreamingLengthMinutesText;
     private string _mistralApiKey;
@@ -44,6 +45,7 @@ public sealed class SettingsViewModel : ObservableObject
         _maxStreamingLengthMinutesText = settings.MaxStreamingLengthMinutes.ToString();
         _toggleRecordingHotkey = settings.ToggleRecordingHotkey;
         _showTranscriptWindowWhenSpeaking = settings.ShowTranscriptWindowWhenSpeaking;
+        _enableRecordingReadySoundCue = settings.EnableRecordingReadySoundCue;
         _autoPasteAfterCopy = settings.AutoPasteAfterCopy;
         _launchOnWindowsLogin = settings.LaunchOnWindowsLogin;
         _selectedRealtimeVadMode = settings.RealtimeVadMode;
@@ -144,6 +146,12 @@ public sealed class SettingsViewModel : ObservableObject
         set => SetProperty(ref _autoPasteAfterCopy, value);
     }
 
+    public bool EnableRecordingReadySoundCue
+    {
+        get => _enableRecordingReadySoundCue;
+        set => SetProperty(ref _enableRecordingReadySoundCue, value);
+    }
+
     public IReadOnlyList<SettingOption<RealtimeVadMode>> AvailableRealtimeVadModes => _availableRealtimeVadModes;
 
     public RealtimeVadMode SelectedRealtimeVadMode
@@ -212,6 +220,7 @@ public sealed class SettingsViewModel : ObservableObject
         MaxStreamingLengthMinutesText = settings.MaxStreamingLengthMinutes.ToString();
         ToggleRecordingHotkey = settings.ToggleRecordingHotkey;
         ShowTranscriptWindowWhenSpeaking = settings.ShowTranscriptWindowWhenSpeaking;
+        EnableRecordingReadySoundCue = settings.EnableRecordingReadySoundCue;
         AutoPasteAfterCopy = settings.AutoPasteAfterCopy;
         LaunchOnWindowsLogin = settings.LaunchOnWindowsLogin;
         SelectedRealtimeVadMode = settings.RealtimeVadMode;
@@ -258,6 +267,7 @@ public sealed class SettingsViewModel : ObservableObject
             MaxStreamingLengthMinutes: maxStreamingLengthMinutes,
             ToggleRecordingHotkey: ToggleRecordingHotkey.Trim(),
             ShowTranscriptWindowWhenSpeaking: ShowTranscriptWindowWhenSpeaking,
+            EnableRecordingReadySoundCue: EnableRecordingReadySoundCue,
             AutoPasteAfterCopy: AutoPasteAfterCopy,
             LaunchOnWindowsLogin: LaunchOnWindowsLogin,
             RealtimeVadMode: SelectedRealtimeVadMode,

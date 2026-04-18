@@ -157,6 +157,10 @@
                                       Foreground="#203126"
                                       Content="Auto-paste to current focus" />
                             <CheckBox Margin="0,10,0,0"
+                                      IsChecked="{Binding EnableRecordingReadySoundCue}"
+                                      Foreground="#203126"
+                                      Content="Play a sound when recording is ready" />
+                            <CheckBox Margin="0,10,0,0"
                                       IsChecked="{Binding ShowTranscriptWindowWhenSpeaking}"
                                       Foreground="#203126"
                                       Content="Pop up transcript window when speaking" />
@@ -178,7 +182,7 @@
                             <TextBlock Margin="0,10,0,0"
                                        Foreground="#617362"
                                        TextWrapping="Wrap"
-                                       Text="Mistral currently uses upload-after-stop transcription in whisper.">
+                                       Text="Mistral currently only supports non-streaming mode.">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Visibility" Value="Collapsed" />

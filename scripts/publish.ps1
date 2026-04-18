@@ -25,6 +25,18 @@ if (Test-Path $publishRoot) {
     Remove-Item $publishRoot -Recurse -Force
 }
 
+$cleanArgs = @(
+    "clean",
+    $projectPath,
+    "-c", $Configuration,
+    "-r", $Runtime
+)
+
+& dotnet @cleanArgs
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
 $publishArgs = @(
     "publish",
     $projectPath,

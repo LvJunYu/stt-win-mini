@@ -25,6 +25,18 @@ if (Test-Path $localAppDir) {
 
 New-Item -ItemType Directory -Path $localAppDir -Force | Out-Null
 
+$cleanArgs = @(
+    "clean",
+    $projectPath,
+    "-c", $Configuration,
+    "-r", $Runtime
+)
+
+& dotnet @cleanArgs
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
 $publishArgs = @(
     "publish",
     $projectPath,
