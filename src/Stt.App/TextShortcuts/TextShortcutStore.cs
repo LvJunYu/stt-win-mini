@@ -45,7 +45,8 @@ public static class TextShortcutStore
                     Name: entry.Name ?? string.Empty,
                     Hotkey: entry.Hotkey ?? string.Empty,
                     Text: Unprotect(entry.ProtectedText),
-                    IsSecret: entry.IsSecret))
+                    IsSecret: entry.IsSecret,
+                    DelayMilliseconds: Math.Max(0, entry.DelayMilliseconds)))
                 .ToList();
 
             return new LoadedTextShortcuts(shortcuts, null);
@@ -74,7 +75,8 @@ public static class TextShortcutStore
                     Name = shortcut.Name,
                     Hotkey = shortcut.Hotkey,
                     ProtectedText = Protect(shortcut.Text),
-                    IsSecret = shortcut.IsSecret
+                    IsSecret = shortcut.IsSecret,
+                    DelayMilliseconds = shortcut.DelayMilliseconds
                 })
                 .ToList()
         };
@@ -119,5 +121,6 @@ public static class TextShortcutStore
         public string? Hotkey { get; init; }
         public string? ProtectedText { get; init; }
         public bool IsSecret { get; init; }
+        public int DelayMilliseconds { get; init; }
     }
 }

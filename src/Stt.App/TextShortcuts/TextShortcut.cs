@@ -4,4 +4,5 @@ public sealed record TextShortcut(
     string Name,
     string Hotkey,
     string Text,
-    bool IsSecret);
+    bool IsSecret,
+    int DelayMilliseconds);

@@ -102,6 +102,11 @@ public partial class TextShortcutsWindow : Window
         SyncPasswordBoxFromItem(sender);
     }
 
+    private void SecretPasswordBox_OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        SyncPasswordBoxFromItem(sender);
+    }
+
     private void SecretPasswordBox_OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         if (e.NewValue is true)
@@ -124,6 +129,20 @@ public partial class TextShortcutsWindow : Window
             && passwordBox.Password != item.Text)
         {
             passwordBox.Password = item.Text;
+        }
+    }
+
+    private void DigitsTextBox_OnPreviewTextInput(object sender, TextCompositionEventArgs e)
+    {
+        e.Handled = !e.Text.All(char.IsAsciiDigit);
+    }
+
+    private void DigitsTextBox_OnPasting(object sender, DataObjectPastingEventArgs e)
+    {
+        var pastedText = e.DataObject.GetData(System.Windows.DataFormats.Text) as string;
+        if (string.IsNullOrEmpty(pastedText) || !pastedText.All(char.IsAsciiDigit))
+        {
+            e.CancelCommand();
         }
     }
 

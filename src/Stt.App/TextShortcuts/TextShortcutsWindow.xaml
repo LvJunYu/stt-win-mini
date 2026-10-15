@@ -3,9 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="whisper Text Shortcuts"
         Icon="/Assets/whisper.ico"
-        Width="560"
-        Height="560"
-        MinWidth="460"
+        Width="720"
+        Height="540"
+        MinWidth="600"
         MinHeight="420"
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="False"
@@ -13,7 +13,44 @@
         Background="#E6ECE4">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#33453A" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Padding" Value="14,6" />
+            <Setter Property="Background" Value="#E7ECE3" />
+            <Setter Property="BorderBrush" Value="#CDD8C7" />
+            <Setter Property="Foreground" Value="#203126" />
+        </Style>
+
+        <Style x:Key="ShortcutListItem" TargetType="ListBoxItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="ItemBorder"
+                                Margin="0,0,0,4"
+                                Padding="12,8"
+                                CornerRadius="10"
+                                Background="Transparent">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#E4EBE0" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#D3DFCD" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
+
     <Grid Margin="16">
         <Border CornerRadius="18"
                 Background="#FFFDF7"
@@ -23,24 +60,24 @@
                 <Border DockPanel.Dock="Bottom"
                         Padding="22,14,22,18"
                         BorderBrush="#E4EADF"
-                        BorderThickness="0,1,0,0"
-                        Background="#FFFDF7">
+                        BorderThickness="0,1,0,0">
                     <Grid>
-                        <Button HorizontalAlignment="Left"
-                                Padding="14,8"
-                                Command="{Binding AddCommand}"
-                                Background="#E7ECE3"
-                                BorderBrush="#CDD8C7"
-                                Foreground="#203126"
-                                Content="Add shortcut" />
-                        <StackPanel Orientation="Horizontal"
-                                    HorizontalAlignment="Right">
-                            <Button Padding="16,8"
-                                    Margin="0,0,10,0"
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock VerticalAlignment="Center"
+                                   Margin="0,0,16,0"
+                                   Foreground="#8A9A8A"
+                                   FontSize="11"
+                                   TextTrimming="CharacterEllipsis"
+                                   Text="Stored encrypted for your Windows account."
+                                   ToolTip="{Binding FilePath, Mode=OneWay}" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Margin="0,0,10,0"
+                                    Padding="16,8"
+                                    Style="{StaticResource SecondaryButton}"
                                     Command="{Binding CancelCommand}"
-                                    Background="#E7ECE3"
-                                    BorderBrush="#CDD8C7"
-                                    Foreground="#203126"
                                     Content="Cancel" />
                             <Button Padding="18,8"
                                     Command="{Binding SaveCommand}"
@@ -52,141 +89,173 @@
                     </Grid>
                 </Border>
 
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="22,22,22,18">
-                        <TextBlock Text="Text shortcuts"
-                                   Foreground="#33453A"
-                                   FontWeight="SemiBold" />
-                        <TextBlock Margin="0,4,0,0"
-                                   Foreground="#617362"
-                                   TextWrapping="Wrap"
-                                   Text="Press a hotkey anywhere to type its text into the focused field. Text is typed directly, not pasted, so it never goes through the clipboard." />
+                <Grid Margin="22,22,22,18">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="210" />
+                        <ColumnDefinition Width="18" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-                        <TextBlock Margin="0,18,0,0"
-                                   Foreground="#617362"
-                                   Text="No shortcuts yet. Use Add shortcut to create one.">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding HasShortcuts}" Value="False">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                    <!-- Shortcut list -->
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Bottom"
+                                    Margin="0,10,0,0"
+                                    Orientation="Horizontal">
+                            <Button Margin="0,0,8,0"
+                                    Style="{StaticResource SecondaryButton}"
+                                    Command="{Binding AddCommand}"
+                                    Content="Add" />
+                            <Button Style="{StaticResource SecondaryButton}"
+                                    Command="{Binding RemoveCommand}"
+                                    Content="Remove" />
+                        </StackPanel>
 
-                        <ItemsControl ItemsSource="{Binding Shortcuts}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Margin="0,18,0,0"
-                                            Padding="14"
-                                            CornerRadius="14"
-                                            Background="#EEF3EB"
-                                            BorderBrush="#D7E1D2"
-                                            BorderThickness="1">
-                                        <StackPanel>
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-
-                                                <TextBlock VerticalAlignment="Center"
-                                                           Text="Name"
-                                                           Foreground="#33453A"
-                                                           FontWeight="SemiBold" />
-                                                <Button Grid.Column="1"
-                                                        Padding="12,4"
-                                                        Command="{Binding RemoveCommand}"
-                                                        Background="#E7ECE3"
-                                                        BorderBrush="#CDD8C7"
-                                                        Foreground="#203126"
-                                                        Content="Remove" />
-                                            </Grid>
-                                            <TextBox Margin="0,8,0,0"
-                                                     Padding="12,8"
-                                                     Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
-                                                     Background="#FFFDF7"
-                                                     BorderBrush="#CCD7C5"
-                                                     Foreground="#162018" />
-
-                                            <TextBlock Margin="0,12,0,0"
-                                                       Text="Hotkey (click, then press the keys; Backspace clears)"
-                                                       Foreground="#33453A"
-                                                       FontWeight="SemiBold" />
-                                            <TextBox Margin="0,8,0,0"
-                                                     Padding="12,8"
-                                                     IsReadOnly="True"
-                                                     Text="{Binding Hotkey, Mode=OneWay}"
-                                                     PreviewKeyDown="HotkeyTextBox_OnPreviewKeyDown"
-                                                     PreviewTextInput="HotkeyTextBox_OnPreviewTextInput"
-                                                     Background="#FFFDF7"
-                                                     BorderBrush="#CCD7C5"
-                                                     Foreground="#162018" />
-
-                                            <TextBlock Margin="0,12,0,0"
-                                                       Text="Text to type"
-                                                       Foreground="#33453A"
-                                                       FontWeight="SemiBold" />
-                                            <Grid Margin="0,8,0,0">
-                                                <TextBox Padding="12,8"
-                                                         AcceptsReturn="True"
-                                                         TextWrapping="Wrap"
-                                                         MaxHeight="120"
-                                                         VerticalScrollBarVisibility="Auto"
-                                                         Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
-                                                         Background="#FFFDF7"
-                                                         BorderBrush="#CCD7C5"
-                                                         Foreground="#162018">
-                                                    <TextBox.Style>
-                                                        <Style TargetType="TextBox">
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsSecret}" Value="True">
-                                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBox.Style>
-                                                </TextBox>
-                                                <PasswordBox Padding="12,8"
-                                                             Visibility="{Binding IsSecret, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                             Loaded="SecretPasswordBox_OnLoaded"
-                                                             IsVisibleChanged="SecretPasswordBox_OnIsVisibleChanged"
-                                                             PasswordChanged="SecretPasswordBox_OnPasswordChanged"
-                                                             Background="#FFFDF7"
-                                                             BorderBrush="#CCD7C5"
-                                                             Foreground="#162018" />
-                                            </Grid>
-                                            <CheckBox Margin="0,10,0,0"
-                                                      IsChecked="{Binding IsSecret}"
-                                                      Foreground="#203126"
-                                                      Content="Hide text (for passwords)" />
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <Border Margin="0,18,0,0"
-                                Padding="14"
+                        <Border Padding="6"
                                 CornerRadius="14"
                                 Background="#EEF3EB"
                                 BorderBrush="#D7E1D2"
                                 BorderThickness="1">
-                            <StackPanel>
-                                <TextBlock Text="Shortcuts file (encrypted for your Windows account)"
-                                           Foreground="#33453A"
-                                           FontWeight="SemiBold" />
-                                <TextBlock Margin="0,6,0,0"
-                                           Text="{Binding FilePath, Mode=OneWay}"
+                            <Grid>
+                                <TextBlock Margin="8"
                                            Foreground="#617362"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
+                                           TextWrapping="Wrap"
+                                           Text="No shortcuts yet.">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasShortcuts}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <ListBox ItemsSource="{Binding Shortcuts}"
+                                         SelectedItem="{Binding SelectedShortcut}"
+                                         ItemContainerStyle="{StaticResource ShortcutListItem}"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding DisplayName}"
+                                                           Foreground="#162018"
+                                                           FontWeight="SemiBold"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Margin="0,2,0,0"
+                                                           Text="{Binding HotkeyDisplayText}"
+                                                           Foreground="#617362"
+                                                           FontSize="11" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
                         </Border>
-                    </StackPanel>
-                </ScrollViewer>
+                    </DockPanel>
+
+                    <!-- Selected shortcut editor -->
+                    <TextBlock Grid.Column="2"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                               Foreground="#617362"
+                               Text="Add a shortcut, then press its hotkey anywhere to type the text.">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasSelection}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <ScrollViewer Grid.Column="2"
+                                  VerticalScrollBarVisibility="Auto"
+                                  DataContext="{Binding SelectedShortcut}"
+                                  Visibility="{Binding DataContext.HasSelection, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Name" />
+                            <TextBox Margin="0,8,0,0"
+                                     Padding="12,8"
+                                     Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#FFFDF7"
+                                     BorderBrush="#CCD7C5"
+                                     Foreground="#162018" />
+
+                            <TextBlock Margin="0,14,0,0"
+                                       Style="{StaticResource FieldLabel}"
+                                       Text="Hotkey" />
+                            <TextBox Margin="0,8,0,0"
+                                     Padding="12,8"
+                                     IsReadOnly="True"
+                                     Text="{Binding Hotkey, Mode=OneWay}"
+                                     ToolTip="Click, then press the keys. Backspace clears."
+                                     PreviewKeyDown="HotkeyTextBox_OnPreviewKeyDown"
+                                     PreviewTextInput="HotkeyTextBox_OnPreviewTextInput"
+                                     Background="#FFFDF7"
+                                     BorderBrush="#CCD7C5"
+                                     Foreground="#162018" />
+
+                            <TextBlock Margin="0,14,0,0"
+                                       Style="{StaticResource FieldLabel}"
+                                       Text="Text to type" />
+                            <Grid Margin="0,8,0,0">
+                                <TextBox Padding="12,8"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         MinHeight="60"
+                                         MaxHeight="140"
+                                         VerticalScrollBarVisibility="Auto"
+                                         Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                                         Background="#FFFDF7"
+                                         BorderBrush="#CCD7C5"
+                                         Foreground="#162018">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSecret}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                                <PasswordBox Padding="12,8"
+                                             Visibility="{Binding IsSecret, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                             Loaded="SecretPasswordBox_OnLoaded"
+                                             DataContextChanged="SecretPasswordBox_OnDataContextChanged"
+                                             IsVisibleChanged="SecretPasswordBox_OnIsVisibleChanged"
+                                             PasswordChanged="SecretPasswordBox_OnPasswordChanged"
+                                             Background="#FFFDF7"
+                                             BorderBrush="#CCD7C5"
+                                             Foreground="#162018" />
+                            </Grid>
+                            <CheckBox Margin="0,10,0,0"
+                                      IsChecked="{Binding IsSecret}"
+                                      Foreground="#203126"
+                                      Content="Hide text (for passwords)" />
+
+                            <TextBlock Margin="0,14,0,0"
+                                       Style="{StaticResource FieldLabel}"
+                                       Text="Delay before typing (ms)" />
+                            <TextBox Margin="0,8,0,0"
+                                     Padding="12,8"
+                                     Width="120"
+                                     HorizontalAlignment="Left"
+                                     Text="{Binding DelayMillisecondsText, UpdateSourceTrigger=PropertyChanged}"
+                                     PreviewTextInput="DigitsTextBox_OnPreviewTextInput"
+                                     DataObject.Pasting="DigitsTextBox_OnPasting"
+                                     InputMethod.IsInputMethodEnabled="False"
+                                     Background="#FFFDF7"
+                                     BorderBrush="#CCD7C5"
+                                     Foreground="#162018" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
             </DockPanel>
         </Border>
     </Grid>

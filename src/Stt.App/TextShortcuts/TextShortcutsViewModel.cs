@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Windows.Input;
 using Stt.App.Common;
 using Stt.App.Services;
@@ -7,11 +8,15 @@ namespace Stt.App.TextShortcuts;
 
 public sealed class TextShortcutsViewModel : ObservableObject
 {
+    private const int MaxDelayMilliseconds = 60_000;
     private readonly Func<string> _recordingHotkeyAccessor;
+    private readonly RelayCommand _removeCommand;
+    private TextShortcutItemViewModel? _selectedShortcut;
 
     public TextShortcutsViewModel(Func<string> recordingHotkeyAccessor)
     {
         _recordingHotkeyAccessor = recordingHotkeyAccessor;
+        _removeCommand = new RelayCommand(RemoveSelectedShortcut, () => SelectedShortcut is not null);
         Shortcuts.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasShortcuts));
         AddCommand = new RelayCommand(AddShortcut);
         SaveCommand = new RelayCommand(RequestSave);
@@ -24,11 +29,29 @@ public sealed class TextShortcutsViewModel : ObservableObject
 
     public ObservableCollection<TextShortcutItemViewModel> Shortcuts { get; } = [];
 
+    public TextShortcutItemViewModel? SelectedShortcut
+    {
+        get => _selectedShortcut;
+        set
+        {
+            if (!SetProperty(ref _selectedShortcut, value))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(HasSelection));
+            _removeCommand.NotifyCanExecuteChanged();
+        }
+    }
+
     public bool HasShortcuts => Shortcuts.Count > 0;
+
+    public bool HasSelection => SelectedShortcut is not null;
 
     public string FilePath => TextShortcutStore.FilePath;
 
     public ICommand AddCommand { get; }
+    public ICommand RemoveCommand => _removeCommand;
     public ICommand SaveCommand { get; }
     public ICommand CancelCommand { get; }
 
@@ -38,44 +61,42 @@ public sealed class TextShortcutsViewModel : ObservableObject
 
         foreach (var shortcut in shortcuts)
         {
-            Shortcuts.Add(new TextShortcutItemViewModel(shortcut, RemoveShortcut));
+            Shortcuts.Add(new TextShortcutItemViewModel(shortcut));
         }
+
+        SelectedShortcut = Shortcuts.FirstOrDefault();
     }
 
     private void AddShortcut()
     {
-        Shortcuts.Add(new TextShortcutItemViewModel(
-            new TextShortcut(string.Empty, string.Empty, string.Empty, IsSecret: false),
-            RemoveShortcut));
+        var item = new TextShortcutItemViewModel(new TextShortcut(
+            Name: string.Empty,
+            Hotkey: string.Empty,
+            Text: string.Empty,
+            IsSecret: false,
+            DelayMilliseconds: 0));
+
+        Shortcuts.Add(item);
+        SelectedShortcut = item;
     }
 
-    private void RemoveShortcut(TextShortcutItemViewModel item)
+    private void RemoveSelectedShortcut()
     {
-        Shortcuts.Remove(item);
+        if (SelectedShortcut is null)
+        {
+            return;
+        }
+
+        var index = Shortcuts.IndexOf(SelectedShortcut);
+        Shortcuts.RemoveAt(index);
+        SelectedShortcut = Shortcuts.Count == 0
+            ? null
+            : Shortcuts[Math.Min(index, Shortcuts.Count - 1)];
     }
 
     private void RequestSave()
     {
-        var shortcuts = Shortcuts
-            .Select(item => new TextShortcut(
-                Name: item.Name.Trim(),
-                Hotkey: item.Hotkey.Trim(),
-                Text: item.Text,
-                IsSecret: item.IsSecret))
-            .ToList();
-
-        var validationError = Validate(shortcuts);
-        if (validationError is not null)
-        {
-            ValidationFailed?.Invoke(this, validationError);
-            return;
-        }
-
-        SaveRequested?.Invoke(this, new TextShortcutsSaveRequestedEventArgs(shortcuts));
-    }
-
-    private string? Validate(IReadOnlyList<TextShortcut> shortcuts)
-    {
+        var shortcuts = new List<TextShortcut>(Shortcuts.Count);
         var usedHotkeys = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         if (HotkeyParser.TryParse(_recordingHotkeyAccessor(), out var recordingGesture, out _))
@@ -83,35 +104,65 @@ public sealed class TextShortcutsViewModel : ObservableObject
             usedHotkeys[recordingGesture!.DisplayText] = "the recording hotkey";
         }
 
-        for (var index = 0; index < shortcuts.Count; index++)
+        foreach (var item in Shortcuts)
         {
-            var shortcut = shortcuts[index];
-            var label = string.IsNullOrWhiteSpace(shortcut.Name)
-                ? $"Shortcut {index + 1}"
-                : shortcut.Name;
-
-            if (string.IsNullOrWhiteSpace(shortcut.Hotkey))
+            var error = Validate(item, usedHotkeys, out var shortcut);
+            if (error is not null)
             {
-                return $"{label} needs a hotkey.";
+                SelectedShortcut = item;
+                ValidationFailed?.Invoke(this, $"{item.DisplayName}: {error}");
+                return;
             }
 
-            if (!HotkeyParser.TryParse(shortcut.Hotkey, out var gesture, out var parseError))
-            {
-                return $"{label}: {parseError}";
-            }
-
-            if (string.IsNullOrEmpty(shortcut.Text))
-            {
-                return $"{label} needs some text to type.";
-            }
-
-            if (usedHotkeys.TryGetValue(gesture!.DisplayText, out var owner))
-            {
-                return $"{label}: {gesture.DisplayText} is already used by {owner}.";
-            }
-
-            usedHotkeys[gesture.DisplayText] = label;
+            shortcuts.Add(shortcut!);
         }
+
+        SaveRequested?.Invoke(this, new TextShortcutsSaveRequestedEventArgs(shortcuts));
+    }
+
+    private static string? Validate(
+        TextShortcutItemViewModel item,
+        Dictionary<string, string> usedHotkeys,
+        out TextShortcut? shortcut)
+    {
+        shortcut = null;
+
+        if (string.IsNullOrWhiteSpace(item.Hotkey))
+        {
+            return "needs a hotkey.";
+        }
+
+        if (!HotkeyParser.TryParse(item.Hotkey, out var gesture, out var parseError))
+        {
+            return parseError;
+        }
+
+        if (usedHotkeys.TryGetValue(gesture!.DisplayText, out var owner))
+        {
+            return $"{gesture.DisplayText} is already used by {owner}.";
+        }
+
+        if (string.IsNullOrEmpty(item.Text))
+        {
+            return "needs some text to type.";
+        }
+
+        var delayText = item.DelayMillisecondsText.Trim();
+        var delayMilliseconds = 0;
+        if (delayText.Length > 0
+            && (!int.TryParse(delayText, NumberStyles.None, CultureInfo.InvariantCulture, out delayMilliseconds)
+                || delayMilliseconds > MaxDelayMilliseconds))
+        {
+            return $"delay must be a whole number from 0 to {MaxDelayMilliseconds} ms.";
+        }
+
+        usedHotkeys[gesture.DisplayText] = item.DisplayName;
+        shortcut = new TextShortcut(
+            Name: item.Name.Trim(),
+            Hotkey: gesture.DisplayText,
+            Text: item.Text,
+            IsSecret: item.IsSecret,
+            DelayMilliseconds: delayMilliseconds);
 
         return null;
     }
@@ -124,32 +175,43 @@ public sealed class TextShortcutsViewModel : ObservableObject
 
 public sealed class TextShortcutItemViewModel : ObservableObject
 {
+    private string _delayMillisecondsText;
     private string _hotkey;
     private bool _isSecret;
     private string _name;
     private string _text;
 
-    public TextShortcutItemViewModel(
-        TextShortcut shortcut,
-        Action<TextShortcutItemViewModel> remove)
+    public TextShortcutItemViewModel(TextShortcut shortcut)
     {
         _name = shortcut.Name;
         _hotkey = shortcut.Hotkey;
         _text = shortcut.Text;
         _isSecret = shortcut.IsSecret;
-        RemoveCommand = new RelayCommand(() => remove(this));
+        _delayMillisecondsText = shortcut.DelayMilliseconds.ToString(CultureInfo.InvariantCulture);
     }
 
     public string Name
     {
         get => _name;
-        set => SetProperty(ref _name, value);
+        set
+        {
+            if (SetProperty(ref _name, value))
+            {
+                OnPropertyChanged(nameof(DisplayName));
+            }
+        }
     }
 
     public string Hotkey
     {
         get => _hotkey;
-        set => SetProperty(ref _hotkey, value);
+        set
+        {
+            if (SetProperty(ref _hotkey, value))
+            {
+                OnPropertyChanged(nameof(HotkeyDisplayText));
+            }
+        }
     }
 
     public string Text
@@ -164,7 +226,15 @@ public sealed class TextShortcutItemViewModel : ObservableObject
         set => SetProperty(ref _isSecret, value);
     }
 
-    public ICommand RemoveCommand { get; }
+    public string DelayMillisecondsText
+    {
+        get => _delayMillisecondsText;
+        set => SetProperty(ref _delayMillisecondsText, value);
+    }
+
+    public string DisplayName => string.IsNullOrWhiteSpace(Name) ? "Untitled" : Name.Trim();
+
+    public string HotkeyDisplayText => string.IsNullOrWhiteSpace(Hotkey) ? "No hotkey" : Hotkey;
 }
 
 public sealed class TextShortcutsSaveRequestedEventArgs : EventArgs

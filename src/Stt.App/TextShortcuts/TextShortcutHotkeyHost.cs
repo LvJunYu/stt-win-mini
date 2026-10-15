@@ -56,6 +56,11 @@ public sealed class TextShortcutHotkeyHost : IDisposable
 
     private static async Task TypeShortcutAsync(TextShortcut shortcut)
     {
+        if (shortcut.DelayMilliseconds > 0)
+        {
+            await Task.Delay(shortcut.DelayMilliseconds);
+        }
+
         var typed = await TextShortcutTyper.TypeAsync(shortcut.Text);
 
         // Never log the text itself; it may be a password.
