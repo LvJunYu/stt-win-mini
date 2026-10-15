@@ -7,6 +7,7 @@
 - Quick start/end recording from tray click or hotkey
 - Auto-copy to clipboard, paste anywhere
 - Fast streaming mode
+- Text shortcuts: hotkeys that type saved text (email, password, etc.)
 
 ## Download
 
@@ -28,6 +29,10 @@ Download the latest release here:
 ### Settings panel
 
 <img src="docs/settings-panel.png" alt="whisper settings window" width="480" />
+
+### Text shortcuts
+
+Open `Text Shortcuts` from the tray menu to map hotkeys to saved text. Pressing a hotkey types that text into the focused field. Text is stored encrypted for your Windows account and never goes through the clipboard.
 
 ## Build & Develop
 

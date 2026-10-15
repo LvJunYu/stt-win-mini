@@ -13,6 +13,7 @@ public sealed class TrayIconHost : IDisposable
     private string _recordingStopHint;
     private readonly ToolStripMenuItem _hotkeyMenuItem;
     private readonly ToolStripMenuItem _settingsMenuItem;
+    private readonly ToolStripMenuItem _textShortcutsMenuItem;
     private readonly ToolStripMenuItem _statusMenuItem;
     private readonly ToolStripMenuItem _showTranscriptMenuItem;
     private readonly ToolStripMenuItem _exitMenuItem;
@@ -23,6 +24,7 @@ public sealed class TrayIconHost : IDisposable
         Func<Task> toggleRecordingAsync,
         Action showTranscript,
         Action showSettings,
+        Action showTextShortcuts,
         Action exitApplication,
         string hotkeyLabel,
         string recordingStopHint)
@@ -46,6 +48,9 @@ public sealed class TrayIconHost : IDisposable
         _settingsMenuItem = new ToolStripMenuItem("Settings");
         _settingsMenuItem.Click += (_, _) => showSettings();
 
+        _textShortcutsMenuItem = new ToolStripMenuItem("Text Shortcuts");
+        _textShortcutsMenuItem.Click += (_, _) => showTextShortcuts();
+
         _showTranscriptMenuItem = new ToolStripMenuItem("Show Last Transcript");
         _showTranscriptMenuItem.Click += (_, _) => showTranscript();
 
@@ -57,6 +62,7 @@ public sealed class TrayIconHost : IDisposable
         menu.Items.Add(_hotkeyMenuItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_settingsMenuItem);
+        menu.Items.Add(_textShortcutsMenuItem);
         menu.Items.Add(_showTranscriptMenuItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_exitMenuItem);
@@ -94,6 +100,7 @@ public sealed class TrayIconHost : IDisposable
         _notifyIcon.Dispose();
         _hotkeyMenuItem.Dispose();
         _settingsMenuItem.Dispose();
+        _textShortcutsMenuItem.Dispose();
         _statusMenuItem.Dispose();
         _showTranscriptMenuItem.Dispose();
         _exitMenuItem.Dispose();
@@ -194,5 +201,14 @@ public sealed class TrayIconHost : IDisposable
     {
         _hotkeyMenuItem.Text = $"Hotkey: {hotkeyLabel}";
         _recordingStopHint = recordingStopHint;
+    }
+
+    public void ShowWarning(string title, string message)
+    {
+        _notifyIcon.ShowBalloonTip(
+            3000,
+            title,
+            message,
+            ToolTipIcon.Warning);
     }
 }

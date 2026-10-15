@@ -4,6 +4,7 @@ using Stt.App.Common;
 using Stt.App.Configuration;
 using Stt.App.Controllers;
 using Stt.App.Services;
+using Stt.App.TextShortcuts;
 using Stt.App.ViewModels;
 using Stt.App.Windows;
 using Stt.Core.Diagnostics;
@@ -44,6 +45,10 @@ public partial class App : System.Windows.Application
     private string? _settingsPath;
     private SettingsViewModel? _settingsViewModel;
     private SettingsWindow? _settingsWindow;
+    private IReadOnlyList<TextShortcut> _textShortcuts = [];
+    private TextShortcutHotkeyHost? _textShortcutHotkeyHost;
+    private TextShortcutsViewModel? _textShortcutsViewModel;
+    private TextShortcutsWindow? _textShortcutsWindow;
     private TrayIconHost? _trayIconHost;
     private TranscriptPopupViewModel? _viewModel;
     private TranscriptWindow? _transcriptWindow;
@@ -88,6 +93,8 @@ public partial class App : System.Windows.Application
         _trayIconHost = CreateTrayIconHost(hotkeySetup);
 
         _trayIconHost.ApplySnapshot(initialSnapshot);
+
+        InitializeTextShortcuts();
     }
 
     protected override void OnExit(System.Windows.ExitEventArgs e)
@@ -104,8 +111,15 @@ public partial class App : System.Windows.Application
             _settingsWindow.Close();
         }
 
+        if (_textShortcutsWindow is not null)
+        {
+            _textShortcutsWindow.AllowClose = true;
+            _textShortcutsWindow.Close();
+        }
+
         _trayIconHost?.Dispose();
         _globalHotkeyService?.Dispose();
+        _textShortcutHotkeyHost?.Dispose();
         _microphoneCaptureSession?.Dispose();
         _streamingMicrophoneCaptureSession?.Dispose();
         _openAiHttpClient?.Dispose();
@@ -216,6 +230,74 @@ public partial class App : System.Windows.Application
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }
+    }
+
+    private void InitializeTextShortcuts()
+    {
+        var loadedShortcuts = TextShortcutStore.Load();
+        _textShortcuts = loadedShortcuts.Shortcuts;
+        _textShortcutHotkeyHost = new TextShortcutHotkeyHost();
+
+        var problems = _textShortcutHotkeyHost.Apply(_textShortcuts).ToList();
+        if (!string.IsNullOrWhiteSpace(loadedShortcuts.LoadErrorMessage))
+        {
+            problems.Insert(0, loadedShortcuts.LoadErrorMessage);
+        }
+
+        if (problems.Count > 0)
+        {
+            WhisperTrace.Log("TextShortcut", string.Join(" ", problems));
+            _trayIconHost?.ShowWarning("Text shortcuts unavailable", string.Join("\n", problems));
+        }
+    }
+
+    private void ShowTextShortcutsWindow()
+    {
+        if (_textShortcutsViewModel is null)
+        {
+            _textShortcutsViewModel = new TextShortcutsViewModel(() => _currentSettings.ToggleRecordingHotkey);
+            _textShortcutsViewModel.SaveRequested += OnTextShortcutsSaveRequested;
+        }
+
+        _textShortcutsWindow ??= new TextShortcutsWindow
+        {
+            DataContext = _textShortcutsViewModel
+        };
+
+        _textShortcutsViewModel.ApplyShortcuts(_textShortcuts);
+        ShowManagedWindow(_textShortcutsWindow);
+    }
+
+    private void OnTextShortcutsSaveRequested(object? sender, TextShortcutsSaveRequestedEventArgs e)
+    {
+        try
+        {
+            TextShortcutStore.Save(e.Shortcuts);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                ex.Message,
+                $"{AppIdentity.DisplayName} Text Shortcuts",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            return;
+        }
+
+        _textShortcuts = e.Shortcuts;
+        var registrationErrors = _textShortcutHotkeyHost?.Apply(_textShortcuts) ?? [];
+
+        if (registrationErrors.Count > 0)
+        {
+            System.Windows.MessageBox.Show(
+                $"Shortcuts saved, but some hotkeys couldn't be registered:\n\n{string.Join("\n", registrationErrors)}",
+                $"{AppIdentity.DisplayName} Text Shortcuts",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        _textShortcutsWindow?.Hide();
     }
 
     private HotkeySetupResult ApplyHotkeySetting(string configuredHotkey)
@@ -405,6 +487,7 @@ public partial class App : System.Windows.Application
             toggleRecordingAsync: _controller!.ToggleRecordingAsync,
             showTranscript: () => ShowTranscriptWindow(),
             showSettings: ShowSettingsWindow,
+            showTextShortcuts: ShowTextShortcutsWindow,
             exitApplication: Shutdown,
             hotkeyLabel: hotkeySetup.MenuLabel,
             recordingStopHint: hotkeySetup.RecordingStopHint);

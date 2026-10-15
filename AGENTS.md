@@ -12,6 +12,7 @@
   default upload-after-stop recording
   optional realtime streaming while recording
 - In-app settings for provider selection, API keys, microphone, hotkey, startup behavior, and popup behavior
+- Text shortcuts (non-STT convenience): global hotkeys that type saved text, configured from the tray menu
 
 ## Codebase Structure
 - `src/Stt.App`
@@ -48,6 +49,8 @@
   realtime streaming workflow
 - `src/Stt.Infrastructure/Workflows/SelectableRecordingWorkflow.cs`
   runtime switch between streaming and non-streaming paths
+- `src/Stt.App/TextShortcuts`
+  self-contained text shortcuts feature: window, encrypted store, hotkeys, typing via `SendInput`
 
 ## Current Defaults
 - Upload-after-stop is the default recording mode
